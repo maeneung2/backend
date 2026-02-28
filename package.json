@@ -2,11 +2,11 @@
   "name": "sa_backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "src/index.ts",
   "scripts": {
-    "start": "node index.ts",
-    "dev": "nodemon index.ts",
-    "build": "tsc && node dist"
+    "start": "node src/index.ts",
+    "dev": "nodemon src/index.ts",
+    "build": "tsup src/index.ts --clean --format cjs"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +24,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "tsup": "^8.5.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^24.10.2",
