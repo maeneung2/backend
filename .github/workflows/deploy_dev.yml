@@ -24,6 +24,6 @@ jobs:
           script: |
             git config --global --add safe.directory /home/ubuntu/backend
             cd backend
-            git pull 
+            git pull origin dev
             pnpm install
             pm2 reload all
