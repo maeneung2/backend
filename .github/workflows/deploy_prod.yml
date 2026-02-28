@@ -10,9 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Git safe directory
-        run: git config --global --add safe.directory /home/***/backend
-
       - name: Checkout code
         uses: actions/checkout@v4
 
