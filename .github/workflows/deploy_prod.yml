@@ -25,7 +25,8 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: 22
           script: |
-            cd backend # 프로젝트 폴더로 이동
-            git pull origin prod            # 최신 코드 가져오기
-            pnpm install                      # 의존성 설치
-            pm2 reload all                   # PM2로 서버 무중단 재시작
+            cd backend
+            git checkout prod
+            git pull
+            pnpm install
+            pm2 reload all
