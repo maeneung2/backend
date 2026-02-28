@@ -20,10 +20,9 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
-            dir
-            cd /home/ubuntu/backend
+            cd /backend
             git pull origin dev
             npm i -g pnpm
             pnpm install
             npx tsc
-            pm2 restart backend
+            pm2 restart
