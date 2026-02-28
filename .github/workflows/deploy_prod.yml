@@ -12,6 +12,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MY_PAT }}
+          submodules: true
 
       - name: Fix dubious ownership error
         run: git config --global --add safe.directory /home/${{ secrets.EC2_USER }}/backend

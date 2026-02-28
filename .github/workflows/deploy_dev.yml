@@ -12,6 +12,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MY_PAT }}
+          submodules: true
 
       # EC2에 접속해서 실행할 명령어들
       - name: Deploy to EC2 via SSH
