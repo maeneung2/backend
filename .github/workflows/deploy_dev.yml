@@ -22,9 +22,11 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: 22
           script: |
+            sudo rm -f /home/${{ secrets.EC2_USER }}/backend/.git/index.lock
+            sudo chown -R ${{ secrets.EC2_USER }}:${{ secrets.EC2_USER }} /home/${{ secrets.EC2_USER }}/backend
             git config --global --add safe.directory /home/${{ secrets.EC2_USER }}/backend
             cd backend
-            git checkout dev
+            git checkout prod
             git pull
             pnpm install
             pm2 reload all
