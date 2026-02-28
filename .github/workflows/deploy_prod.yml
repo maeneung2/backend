@@ -1,0 +1,28 @@
+name: Deploy to EC2 (Direct SSH)
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # EC2에 접속해서 실행할 명령어들
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST_PROD }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd /home/ubuntu/your-project-dir # 프로젝트 폴더로 이동
+            git pull origin dev             # 최신 코드 가져오기
+            pnpm install                      # 의존성 설치
+            pm2 reload all                   # PM2로 서버 무중단 재시작
