@@ -25,6 +25,7 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: 22
           script: |
+            git config --global --add safe.directory /home/${{ secrets.EC2_USER }}/backend
             cd backend
             git checkout prod
             git pull
