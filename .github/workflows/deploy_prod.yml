@@ -13,6 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Fix dubious ownership error
+        run: git config --global --add safe.directory /backend
+
       # EC2에 접속해서 실행할 명령어들
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
