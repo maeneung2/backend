@@ -2,10 +2,10 @@ import User from "../model/user";
 import dayjs from "dayjs";
 
 export const defaultUser: User = {
-  userId: "default_user_0",
+  userId: "default_user_id",
   admin: false,
-  groupId: "default_group_0",
-  userName: "default_user_0",
+  groupId: "default_group_id",
+  userName: "default_user_id",
   userProfile: "",
   password: "",
   phone: "01012341234",
@@ -14,10 +14,10 @@ export const defaultUser: User = {
 };
 
 export const adminUser: User = {
-  userId: "admin_user_0",
+  userId: "admin_user_id",
   admin: true,
-  groupId: "default_group_0",
-  userName: "admin_user_0",
+  groupId: "default_group_id",
+  userName: "admin_user_id",
   userProfile: "",
   password: "",
   phone: "01012341234",

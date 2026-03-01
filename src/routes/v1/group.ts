@@ -1,5 +1,4 @@
 import express from "express";
-import { defaultUser, userList } from "../../mockup/user";
 import { defaultGroup } from "../../mockup/group";
 
 const router = express.Router();
