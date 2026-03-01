@@ -8,11 +8,11 @@ const port = 3000;
 app.use(cors());
 
 app.get("/", (req, res) => {
-  res.send("찐찐찐찐찐찐찐찐막테스트");
+  res.send("find bibun DEV server is running");
 });
 
 app.use("/api", api);
 
 app.listen(port, () => {
-  console.log(`서버 실행중 http://localhost:${port}`);
+  console.log(`포트 : ${port}`);
 });
