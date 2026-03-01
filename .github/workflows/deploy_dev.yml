@@ -19,7 +19,8 @@ jobs:
           port: ${{ secrets.REMOTE_SSH_PORT }} # 접속포트
           script: | # 실행할 스크립트
             cd /home/ubuntu/backend
-            git pull --no-rebase origin dev
+            git fetch --all
+            git reset --hard origin/dev
             pm2 kill
             pnpm i --force
             pnpm run build
