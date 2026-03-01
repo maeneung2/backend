@@ -8,7 +8,7 @@ const port = 3000;
 app.use(cors());
 
 app.get("/", (req, res) => {
-  res.send("지금 텍스트 노출되면 정상 작동중");
+  res.send("진짜 이거 보이면 된거임");
 });
 
 app.use("/api", api);
