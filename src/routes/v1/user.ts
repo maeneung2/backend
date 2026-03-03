@@ -12,7 +12,7 @@ router.post("/login", async (req, res) => {
 
   try {
     const userResult = await pool.query(
-      'SELECT * FROM "user" WHERE user_id = $1 AND deleted_at IS NULL',
+      'SELECT * FROM "user" WHERE user_name = $1 AND deleted_at IS NULL',
       [id],
     );
 
