@@ -27,7 +27,7 @@ router.patch("/:id", async (req, res) => {
   const { userName, groupId, phone, admin } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE "user" SET user_name = COALESCE($1, user_name), group_id = COALESCE($2, group_id), phone = COALESCE($2, phone), admin = COALESCE($4, admin) WHERE user_id = $5 RETURNING *',
+      'UPDATE "user" SET user_name = COALESCE($1, user_name), group_id = COALESCE($2, group_id), phone = COALESCE($3, phone), admin = COALESCE($4, admin) WHERE user_id = $5 RETURNING *',
       [userName, groupId, phone, admin, id],
     );
     res.json(result.rows[0]);

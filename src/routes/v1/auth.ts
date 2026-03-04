@@ -12,7 +12,7 @@ router.post("/login", async (req, res) => {
 
   try {
     const result = await pool.query(
-      'SELECT * FROM "user" WHERE id = $1 AND deleted_at IS NULL',
+      'SELECT user_id, id, user_name, group_id, phone, admin, created_at, password FROM "user" WHERE id = $1 AND deleted_at IS NULL',
       [id],
     );
 
@@ -32,11 +32,7 @@ router.post("/login", async (req, res) => {
         .json({ error: "등록되지 않은 번호이거나 비밀번호가 틀렸습니다." });
     }
 
-    const filterUser = {
-      ...user,
-      password: undefined,
-      refresh_token: undefined,
-    };
+    const { password: _pw, ...filterUser } = user;
 
     const accessToken = await generateJWTToken("access", filterUser);
     const refreshToken = await generateJWTToken("refresh", {
@@ -49,7 +45,7 @@ router.post("/login", async (req, res) => {
     );
 
     // 4. 응답 전송 (민감한 정보인 password는 제외)
-    res.status(201).json({
+    res.status(200).json({
       message: "로그인 성공",
       accessToken: accessToken,
       refreshToken: refreshToken,
@@ -109,22 +105,22 @@ router.post("/refresh", async (req, res) => {
     const decoded = jwt.verify(
       refreshToken,
       process.env.JWT_SECRET_REFRESH_TOKEN as string,
-    ) as { user_id: string };
+    ) as { userId: string };
 
     // 2. DB에 저장된 토큰과 일치하는지 확인 (가장 중요!)
     const result = await pool.query(
       'SELECT user_id, group_id FROM "user" WHERE user_id = $1 AND refresh_token = $2',
-      [decoded.user_id, refreshToken],
+      [decoded.userId, refreshToken],
     );
 
     if (result.rows.length === 0) {
       return res
-        .status(402)
+        .status(401)
         .json({ error: "유효하지 않은 Refresh Token입니다." });
     }
 
     const newRefreshToken = await generateJWTToken("refresh", {
-      userId: decoded.user_id,
+      userId: decoded.userId,
     });
 
     const user = result.rows[0];
@@ -145,7 +141,7 @@ router.post("/refresh", async (req, res) => {
   } catch (err) {
     // 토큰이 만료되었거나 변조된 경우
     res
-      .status(403)
+      .status(401)
       .json({ error: "Refresh Token이 만료되었습니다. 다시 로그인하세요." });
   }
 });
@@ -167,7 +163,7 @@ router.post("/logout", async (req, res) => {
       [refreshToken],
     );
 
-    res.status(201).json({
+    res.status(200).json({
       message: "로그아웃 처리 완료",
     });
   } catch (err: any) {
