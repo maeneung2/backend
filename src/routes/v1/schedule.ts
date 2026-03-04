@@ -5,8 +5,21 @@ import {
   createScheduleSchema,
   updateScheduleSchema,
 } from "../../schemas/schedule.schema";
+import registry, { auth, body } from "../../docs/registry";
+import { z } from "zod";
 
 const router = express.Router();
+
+const idParam = z.object({ id: z.string().uuid() });
+
+registry.registerPath({ method: "post", path: "/api/v1/schedule", tags: ["Schedule"], summary: "스케줄 생성",
+  ...auth, request: body(createScheduleSchema), responses: { 201: { description: "스케줄 생성 성공" } } });
+registry.registerPath({ method: "get", path: "/api/v1/schedule/{id}", tags: ["Schedule"], summary: "스케줄 조회",
+  ...auth, request: { params: idParam }, responses: { 200: { description: "스케줄 정보" }, 404: { description: "스케줄 없음" } } });
+registry.registerPath({ method: "patch", path: "/api/v1/schedule/{id}", tags: ["Schedule"], summary: "스케줄 수정",
+  ...auth, request: { params: idParam, ...body(updateScheduleSchema) }, responses: { 200: { description: "수정 성공" }, 404: { description: "스케줄 없음" } } });
+registry.registerPath({ method: "delete", path: "/api/v1/schedule/{id}", tags: ["Schedule"], summary: "스케줄 삭제",
+  ...auth, request: { params: idParam }, responses: { 200: { description: "삭제 성공" } } });
 
 router.post("/", validate(createScheduleSchema), async (req, res, next) => {
   const { schedule, groupId } = req.body;

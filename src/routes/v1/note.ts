@@ -2,8 +2,23 @@ import express from "express";
 import prisma from "../../prisma";
 import { validate } from "../../middleware/validate";
 import { createNoteSchema, updateNoteSchema } from "../../schemas/note.schema";
+import registry, { auth, body } from "../../docs/registry";
+import { z } from "zod";
 
 const router = express.Router();
+
+const idParam = z.object({ id: z.string().uuid() });
+
+registry.registerPath({ method: "post", path: "/api/v1/note", tags: ["Note"], summary: "인수인계 생성",
+  ...auth, request: body(createNoteSchema), responses: { 201: { description: "인수인계 생성 성공" } } });
+registry.registerPath({ method: "get", path: "/api/v1/note/list", tags: ["Note"], summary: "인수인계 목록 조회",
+  ...auth, request: { query: z.object({ groupId: z.string().uuid() }) }, responses: { 200: { description: "인수인계 목록" } } });
+registry.registerPath({ method: "get", path: "/api/v1/note/{id}", tags: ["Note"], summary: "인수인계 단건 조회",
+  ...auth, request: { params: idParam }, responses: { 200: { description: "인수인계 정보" }, 404: { description: "인수인계 없음" } } });
+registry.registerPath({ method: "patch", path: "/api/v1/note/{id}", tags: ["Note"], summary: "인수인계 수정",
+  ...auth, request: { params: idParam, ...body(updateNoteSchema) }, responses: { 200: { description: "수정 성공" }, 404: { description: "인수인계 없음" } } });
+registry.registerPath({ method: "delete", path: "/api/v1/note/{id}", tags: ["Note"], summary: "인수인계 삭제",
+  ...auth, request: { params: idParam }, responses: { 200: { description: "삭제 성공" } } });
 
 router.post("/", validate(createNoteSchema), async (req, res, next) => {
   const { groupId, content, date } = req.body;

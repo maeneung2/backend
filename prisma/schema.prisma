@@ -20,6 +20,7 @@ model User {
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime?      @updatedAt @map("updated_at")
   deletedAt     DateTime?      @map("deleted_at")
+  group         Group?         @relation(fields: [groupId], references: [groupId])
   notes         Note[]
   notices       Notice[]
   comments      Comment[]
@@ -32,7 +33,6 @@ model User {
 model Group {
   groupId      String    @id @default(uuid()) @map("group_id")
   groupName    String    @map("group_name")
-  groupUsers   String[]  @map("group_users")
   groupProfile String?   @map("group_profile")
   owner        String
   scheduleId   String    @map("schedule_id")
@@ -40,6 +40,7 @@ model Group {
   updatedAt    DateTime? @updatedAt @map("updated_at")
   deletedAt    DateTime? @map("deleted_at")
   schedule     Schedule  @relation(fields: [scheduleId], references: [scheduleId])
+  members      User[]
   notes        Note[]
   notices      Notice[]
   comments     Comment[]

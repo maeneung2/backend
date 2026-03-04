@@ -5,8 +5,23 @@ import {
   createCommentSchema,
   updateCommentSchema,
 } from "../../schemas/comment.schema";
+import registry, { auth, body } from "../../docs/registry";
+import { z } from "zod";
 
 const router = express.Router();
+
+const groupAndIdParam = z.object({ groupId: z.string().uuid(), id: z.string().uuid() });
+
+registry.registerPath({ method: "post", path: "/api/v1/comment", tags: ["Comment"], summary: "댓글 생성",
+  ...auth, request: body(createCommentSchema), responses: { 201: { description: "댓글 생성 성공" } } });
+registry.registerPath({ method: "get", path: "/api/v1/comment/{groupId}/list", tags: ["Comment"], summary: "댓글 목록 조회",
+  ...auth, request: { params: z.object({ groupId: z.string().uuid() }), query: z.object({ noticeId: z.string().uuid() }) }, responses: { 200: { description: "댓글 목록" } } });
+registry.registerPath({ method: "get", path: "/api/v1/comment/{groupId}/{id}", tags: ["Comment"], summary: "댓글 단건 조회",
+  ...auth, request: { params: groupAndIdParam }, responses: { 200: { description: "댓글 정보" }, 404: { description: "댓글 없음" } } });
+registry.registerPath({ method: "patch", path: "/api/v1/comment/{groupId}/{id}", tags: ["Comment"], summary: "댓글 수정",
+  ...auth, request: { params: groupAndIdParam, ...body(updateCommentSchema) }, responses: { 200: { description: "수정 성공" }, 404: { description: "댓글 없음" } } });
+registry.registerPath({ method: "delete", path: "/api/v1/comment/{groupId}/{id}", tags: ["Comment"], summary: "댓글 삭제",
+  ...auth, request: { params: groupAndIdParam }, responses: { 200: { description: "삭제 성공" } } });
 
 router.post("/", validate(createCommentSchema), async (req, res, next) => {
   const { groupId, noticeId, targetCommentId, content } = req.body;

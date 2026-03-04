@@ -3,6 +3,7 @@ import express from "express";
 import api from "./routes";
 import cors from "cors";
 import { errorHandler } from "./middleware/errorHandler";
+import { generateOpenApiSpec } from "./docs/openapi";
 
 const app = express();
 const port = 3000;
@@ -22,8 +23,29 @@ app.use(
   }),
 );
 
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.send("find bibun DEV server is running");
+});
+
+app.get("/api-spec.json", (_req, res) => {
+  res.json(generateOpenApiSpec());
+});
+
+app.get("/docs", (_req, res) => {
+  res.send(`<!DOCTYPE html>
+<html>
+  <head>
+    <title>Find Bibun API</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <script
+      id="api-reference"
+      data-url="/api-spec.json"
+      src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+  </body>
+</html>`);
 });
 
 app.use("/api", api);

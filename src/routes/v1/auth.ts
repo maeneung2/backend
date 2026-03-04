@@ -11,8 +11,18 @@ import {
   refreshSchema,
   logoutSchema,
 } from "../../schemas/auth.schema";
+import registry, { body } from "../../docs/registry";
 
 const router = express.Router();
+
+registry.registerPath({ method: "post", path: "/api/v1/auth/login", tags: ["Auth"], summary: "로그인",
+  request: body(loginSchema), responses: { 200: { description: "로그인 성공" }, 401: { description: "인증 실패" } } });
+registry.registerPath({ method: "post", path: "/api/v1/auth", tags: ["Auth"], summary: "회원가입",
+  request: body(registerSchema), responses: { 201: { description: "회원가입 성공" } } });
+registry.registerPath({ method: "post", path: "/api/v1/auth/refresh", tags: ["Auth"], summary: "토큰 갱신",
+  request: body(refreshSchema), responses: { 200: { description: "토큰 갱신 성공" }, 401: { description: "유효하지 않은 토큰" } } });
+registry.registerPath({ method: "post", path: "/api/v1/auth/logout", tags: ["Auth"], summary: "로그아웃",
+  request: body(logoutSchema), responses: { 200: { description: "로그아웃 성공" } } });
 
 router.post("/login", validate(loginSchema), async (req, res, next) => {
   const { id, password } = req.body;
