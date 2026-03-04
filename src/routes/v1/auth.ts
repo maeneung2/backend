@@ -61,7 +61,7 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { userName, phone, password } = req.body;
+  const { id, userName, phone, password } = req.body;
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -72,9 +72,9 @@ router.post("/", async (req, res) => {
     });
 
     const result = await pool.query(
-      `INSERT INTO "user" (user_id, user_name, phone, password, refresh_token) 
-       VALUES ($1, $2, $3, $4) RETURNING user_id, id, user_name, group_id, phone, admin, created_at`,
-      [newUserId, userName, phone, hashedPassword, refreshToken],
+      `INSERT INTO "user" (user_id, id, user_name, phone, password, refresh_token) 
+       VALUES ($1, $2, $3, $4, $5 ,$6) RETURNING user_id, id, user_name, group_id, phone, admin, created_at`,
+      [newUserId, id, userName, phone, hashedPassword, refreshToken],
     );
 
     const user = result.rows[0];
