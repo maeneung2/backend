@@ -62,6 +62,8 @@ router.patch("/:id", validate(updateUserSchema), async (req, res, next) => {
     });
     if (!existing)
       return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
+    if (req.user!.userId !== id && !req.user!.admin)
+      return res.status(403).json({ error: "권한이 없습니다." });
 
     const data = await prisma.user.update({
       where: { userId: id },
@@ -87,6 +89,8 @@ router.patch("/:id", validate(updateUserSchema), async (req, res, next) => {
 
 router.delete("/:id", async (req, res, next) => {
   const { id } = req.params;
+  if (req.user!.userId !== id && !req.user!.admin)
+    return res.status(403).json({ error: "권한이 없습니다." });
   try {
     const result = await prisma.user.updateMany({
       where: { userId: id, deletedAt: null },

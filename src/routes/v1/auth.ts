@@ -1,7 +1,6 @@
 import express from "express";
 import prisma from "../../prisma";
 import bcrypt from "bcrypt";
-import { v4 } from "uuid";
 import generateJWTToken from "../../util/generateJWTToken";
 import jwt from "jsonwebtoken";
 import { validate } from "../../middleware/validate";
@@ -74,21 +73,16 @@ router.post("/", validate(registerSchema), async (req, res, next) => {
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUserId = v4();
-
-    const refreshToken = generateJWTToken("refresh", {
-      userId: newUserId,
-    });
 
     const user = await prisma.user.create({
-      data: {
-        userId: newUserId,
-        id,
-        userName,
-        phone,
-        password: hashedPassword,
-        refreshToken,
-      },
+      data: { id, userName, phone, password: hashedPassword },
+    });
+
+    const refreshToken = generateJWTToken("refresh", { userId: user.userId });
+
+    await prisma.user.update({
+      where: { userId: user.userId },
+      data: { refreshToken },
     });
 
     const { password: _pw, refreshToken: _rt, ...filterUser } = user;

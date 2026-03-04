@@ -79,6 +79,8 @@ router.patch("/:groupId/:id", validate(updateCommentSchema), async (req, res, ne
     });
     if (!existing)
       return res.status(404).json({ error: "댓글을 찾을 수 없습니다." });
+    if (existing.writer !== req.user!.userId && !req.user!.admin)
+      return res.status(403).json({ error: "권한이 없습니다." });
 
     const data = await prisma.comment.update({
       where: { commentId: id },
@@ -93,6 +95,11 @@ router.patch("/:groupId/:id", validate(updateCommentSchema), async (req, res, ne
 router.delete("/:groupId/:id", async (req, res, next) => {
   const { groupId, id } = req.params;
   try {
+    const existing = await prisma.comment.findFirst({ where: { commentId: id, groupId, deletedAt: null } });
+    if (!existing) return res.status(404).json({ error: "댓글을 찾을 수 없습니다." });
+    if (existing.writer !== req.user!.userId && !req.user!.admin)
+      return res.status(403).json({ error: "권한이 없습니다." });
+
     await prisma.comment.updateMany({
       where: { commentId: id, groupId },
       data: { deletedAt: new Date() },

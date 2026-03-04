@@ -75,6 +75,8 @@ router.patch("/:id", validate(updateGroupSchema), async (req, res, next) => {
     });
     if (!existing)
       return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
+    if (existing.owner !== req.user!.userId)
+      return res.status(403).json({ error: "권한이 없습니다." });
 
     const data = await prisma.group.update({
       where: { groupId: id },
@@ -98,6 +100,8 @@ router.post("/:id/member", validate(addMemberSchema), async (req, res, next) => 
     });
     if (!group)
       return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
+    if (group.owner !== req.user!.userId)
+      return res.status(403).json({ error: "권한이 없습니다." });
 
     const user = await prisma.user.findFirst({
       where: { userId, deletedAt: null },
@@ -122,6 +126,11 @@ router.post("/:id/member", validate(addMemberSchema), async (req, res, next) => 
 router.delete("/:id/member/:userId", async (req, res, next) => {
   const { id, userId } = req.params;
   try {
+    const group2 = await prisma.group.findFirst({ where: { groupId: id, deletedAt: null } });
+    if (!group2) return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
+    if (group2.owner !== req.user!.userId)
+      return res.status(403).json({ error: "권한이 없습니다." });
+
     const user = await prisma.user.findFirst({
       where: { userId, groupId: id, deletedAt: null },
     });
@@ -141,6 +150,11 @@ router.delete("/:id/member/:userId", async (req, res, next) => {
 router.delete("/:id", async (req, res, next) => {
   const { id } = req.params;
   try {
+    const group = await prisma.group.findFirst({ where: { groupId: id, deletedAt: null } });
+    if (!group) return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
+    if (group.owner !== req.user!.userId)
+      return res.status(403).json({ error: "권한이 없습니다." });
+
     await prisma.group.updateMany({
       where: { groupId: id },
       data: { deletedAt: new Date() },
