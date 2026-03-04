@@ -119,7 +119,7 @@ router.post("/refresh", async (req, res) => {
 
     if (result.rows.length === 0) {
       return res
-        .status(403)
+        .status(402)
         .json({ error: "유효하지 않은 Refresh Token입니다." });
     }
 
