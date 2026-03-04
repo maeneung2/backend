@@ -14,7 +14,7 @@ export const authenticateToken = (
     return res.status(401).json({ error: "Access token is missing" });
   }
 
-  const secret = process.env.JWT_SECRET as string;
+  const secret = process.env.JWT_SECRET_TOKEN as string;
 
   jwt.verify(token, secret, (err, decoded) => {
     if (err) {
