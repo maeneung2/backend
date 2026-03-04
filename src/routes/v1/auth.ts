@@ -150,4 +150,32 @@ router.post("/refresh", async (req, res) => {
   }
 });
 
+router.post("/logout", async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ error: "이미 로그아웃 상태입니다." });
+  }
+
+  try {
+    await pool.query(
+      `
+      UPDATE "user" 
+      SET refresh_token = NULL 
+      WHERE refresh_token = $1
+    `,
+      [refreshToken],
+    );
+
+    res.status(201).json({
+      message: "로그아웃 처리 완료",
+    });
+  } catch (err: any) {
+    console.error("Logout Error:", err);
+    return res
+      .status(500)
+      .json({ message: "로그아웃 처리 중 오류가 발생했습니다." });
+  }
+});
+
 export default router;
