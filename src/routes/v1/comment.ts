@@ -1,11 +1,16 @@
 import express from "express";
 import prisma from "../../prisma";
+import { validate } from "../../middleware/validate";
+import {
+  createCommentSchema,
+  updateCommentSchema,
+} from "../../schemas/comment.schema";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+router.post("/", validate(createCommentSchema), async (req, res, next) => {
   const { groupId, noticeId, targetCommentId, content } = req.body;
-  const writer = (req as any).user.userId;
+  const writer = req.user!.userId;
   try {
     const data = await prisma.comment.create({
       data: {
@@ -17,12 +22,12 @@ router.post("/", async (req, res) => {
       },
     });
     res.status(201).json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.get("/:groupId/list", async (req, res) => {
+router.get("/:groupId/list", async (req, res, next) => {
   const { groupId } = req.params;
   const { noticeId } = req.query;
   try {
@@ -31,12 +36,12 @@ router.get("/:groupId/list", async (req, res) => {
       orderBy: { createdAt: "asc" },
     });
     res.json({ page: 0, data, total: data.length });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.get("/:groupId/:id", async (req, res) => {
+router.get("/:groupId/:id", async (req, res, next) => {
   const { groupId, id } = req.params;
   try {
     const data = await prisma.comment.findFirst({
@@ -45,12 +50,12 @@ router.get("/:groupId/:id", async (req, res) => {
     if (!data)
       return res.status(404).json({ error: "댓글을 찾을 수 없습니다." });
     res.json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.patch("/:groupId/:id", async (req, res) => {
+router.patch("/:groupId/:id", validate(updateCommentSchema), async (req, res, next) => {
   const { groupId, id } = req.params;
   const { content } = req.body;
   try {
@@ -65,12 +70,12 @@ router.patch("/:groupId/:id", async (req, res) => {
       data: { content: content ?? undefined },
     });
     res.json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.delete("/:groupId/:id", async (req, res) => {
+router.delete("/:groupId/:id", async (req, res, next) => {
   const { groupId, id } = req.params;
   try {
     await prisma.comment.updateMany({
@@ -78,8 +83,8 @@ router.delete("/:groupId/:id", async (req, res) => {
       data: { deletedAt: new Date() },
     });
     res.json({ message: "댓글 삭제 완료" });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 

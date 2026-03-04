@@ -1,9 +1,9 @@
 import jwt from "jsonwebtoken";
 
-const generateJWTToken = async (
+const generateJWTToken = (
   type: "access" | "refresh",
-  data: Object,
-): Promise<string> => {
+  data: object,
+): string => {
   return jwt.sign(
     data,
     type === "access"

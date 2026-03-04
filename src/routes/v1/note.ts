@@ -1,22 +1,24 @@
 import express from "express";
 import prisma from "../../prisma";
+import { validate } from "../../middleware/validate";
+import { createNoteSchema, updateNoteSchema } from "../../schemas/note.schema";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+router.post("/", validate(createNoteSchema), async (req, res, next) => {
   const { groupId, content, date } = req.body;
-  const writer = (req as any).user.userId;
+  const writer = req.user!.userId;
   try {
     const data = await prisma.note.create({
       data: { groupId, writer, content, date: new Date(date) },
     });
     res.status(201).json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.get("/list", async (req, res) => {
+router.get("/list", async (req, res, next) => {
   const { groupId } = req.query;
   try {
     const data = await prisma.note.findMany({
@@ -24,12 +26,12 @@ router.get("/list", async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
     res.json({ page: 0, data, total: data.length });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req, res, next) => {
   const { id } = req.params;
   try {
     const data = await prisma.note.findFirst({
@@ -38,12 +40,12 @@ router.get("/:id", async (req, res) => {
     if (!data)
       return res.status(404).json({ error: "인수인계를 찾을 수 없습니다." });
     res.json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", validate(updateNoteSchema), async (req, res, next) => {
   const { id } = req.params;
   const { content, date } = req.body;
   try {
@@ -61,12 +63,12 @@ router.patch("/:id", async (req, res) => {
       },
     });
     res.json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req, res, next) => {
   const { id } = req.params;
   try {
     await prisma.note.updateMany({
@@ -74,8 +76,8 @@ router.delete("/:id", async (req, res) => {
       data: { deletedAt: new Date() },
     });
     res.json({ message: "인수인계 삭제 완료" });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 

@@ -6,7 +6,7 @@ import group from "./group";
 import note from "./note";
 import comment from "./comment";
 import notification from "./notification";
-import authMiddleware from "../../util/auth/auth.middleware";
+import authMiddleware from "../../middleware/authHandler";
 import auth from "./auth";
 
 const router = express.Router();

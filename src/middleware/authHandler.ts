@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import User from "../../interface/user";
 
 export const authenticateToken = (
   req: Request,
@@ -21,8 +20,7 @@ export const authenticateToken = (
       return res.status(403).json({ error: "Invalid or expired token" });
     }
 
-    // 검증된 데이터를 req.user에 할당 (타입 캐스팅)
-    (req as any).user = decoded as User;
+    req.user = decoded as Request["user"];
     next();
   });
 };

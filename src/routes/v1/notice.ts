@@ -1,22 +1,27 @@
 import express from "express";
 import prisma from "../../prisma";
+import { validate } from "../../middleware/validate";
+import {
+  createNoticeSchema,
+  updateNoticeSchema,
+} from "../../schemas/notice.schema";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+router.post("/", validate(createNoticeSchema), async (req, res, next) => {
   const { groupId, title, content, image } = req.body;
-  const writer = (req as any).user.userId;
+  const writer = req.user!.userId;
   try {
     const data = await prisma.notice.create({
       data: { title, content, image: image ?? [], groupId, writer },
     });
     res.status(201).json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.get("/:groupId/list", async (req, res) => {
+router.get("/:groupId/list", async (req, res, next) => {
   const { groupId } = req.params;
   try {
     const data = await prisma.notice.findMany({
@@ -24,12 +29,12 @@ router.get("/:groupId/list", async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
     res.json({ page: 0, data, total: data.length });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.get("/:groupId/:id", async (req, res) => {
+router.get("/:groupId/:id", async (req, res, next) => {
   const { groupId, id } = req.params;
   try {
     const data = await prisma.notice.findFirst({
@@ -38,12 +43,12 @@ router.get("/:groupId/:id", async (req, res) => {
     if (!data)
       return res.status(404).json({ error: "공지사항을 찾을 수 없습니다." });
     res.json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.patch("/:groupId/:id", async (req, res) => {
+router.patch("/:groupId/:id", validate(updateNoticeSchema), async (req, res, next) => {
   const { groupId, id } = req.params;
   const { title, content, image } = req.body;
   try {
@@ -62,12 +67,12 @@ router.patch("/:groupId/:id", async (req, res) => {
       },
     });
     res.json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.delete("/:groupId/:id", async (req, res) => {
+router.delete("/:groupId/:id", async (req, res, next) => {
   const { groupId, id } = req.params;
   try {
     await prisma.notice.updateMany({
@@ -75,8 +80,8 @@ router.delete("/:groupId/:id", async (req, res) => {
       data: { deletedAt: new Date() },
     });
     res.json({ message: "공지사항 삭제 완료" });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 

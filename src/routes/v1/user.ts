@@ -1,9 +1,11 @@
 import express from "express";
 import prisma from "../../prisma";
+import { validate } from "../../middleware/validate";
+import { updateUserSchema } from "../../schemas/user.schema";
 
 const router = express.Router();
 
-router.get("/list", async (req, res) => {
+router.get("/list", async (req, res, next) => {
   try {
     const data = await prisma.user.findMany({
       where: { deletedAt: null },
@@ -18,12 +20,12 @@ router.get("/list", async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
     res.json({ page: 0, data, total: data.length });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req, res, next) => {
   const { id } = req.params;
   try {
     const data = await prisma.user.findFirst({
@@ -33,12 +35,12 @@ router.get("/:id", async (req, res) => {
     if (!data)
       return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
     res.json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", validate(updateUserSchema), async (req, res, next) => {
   const { id } = req.params;
   const { userName, groupId, phone, admin } = req.body;
   try {
@@ -65,12 +67,12 @@ router.patch("/:id", async (req, res) => {
       },
     });
     res.json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req, res, next) => {
   const { id } = req.params;
   try {
     const result = await prisma.user.updateMany({
@@ -80,8 +82,8 @@ router.delete("/:id", async (req, res) => {
     if (result.count === 0)
       return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
     res.json({ message: "탈퇴 처리되었습니다." });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 

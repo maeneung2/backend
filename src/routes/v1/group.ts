@@ -1,11 +1,17 @@
 import express from "express";
 import prisma from "../../prisma";
+import { validate } from "../../middleware/validate";
+import {
+  createGroupSchema,
+  updateGroupSchema,
+  addMemberSchema,
+} from "../../schemas/group.schema";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+router.post("/", validate(createGroupSchema), async (req, res, next) => {
   const { groupName, groupProfile, scheduleId } = req.body;
-  const owner = (req as any).user.userId;
+  const owner = req.user!.userId;
   try {
     const data = await prisma.group.create({
       data: {
@@ -17,12 +23,12 @@ router.post("/", async (req, res) => {
       },
     });
     res.status(201).json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req, res, next) => {
   const { id } = req.params;
   try {
     const data = await prisma.group.findFirst({
@@ -31,12 +37,12 @@ router.get("/:id", async (req, res) => {
     if (!data)
       return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
     res.json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", validate(updateGroupSchema), async (req, res, next) => {
   const { id } = req.params;
   const { groupName, groupProfile } = req.body;
   try {
@@ -54,12 +60,12 @@ router.patch("/:id", async (req, res) => {
       },
     });
     res.json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.post("/:id/member", async (req, res) => {
+router.post("/:id/member", validate(addMemberSchema), async (req, res, next) => {
   const { id } = req.params;
   const { userId } = req.body;
   try {
@@ -81,12 +87,12 @@ router.post("/:id/member", async (req, res) => {
       data: { groupUsers: { push: userId } },
     });
     res.json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.delete("/:id/member/:userId", async (req, res) => {
+router.delete("/:id/member/:userId", async (req, res, next) => {
   const { id, userId } = req.params;
   try {
     const group = await prisma.group.findFirst({
@@ -100,12 +106,12 @@ router.delete("/:id/member/:userId", async (req, res) => {
       data: { groupUsers: group.groupUsers.filter((u) => u !== userId) },
     });
     res.json({ data });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req, res, next) => {
   const { id } = req.params;
   try {
     await prisma.group.updateMany({
@@ -113,8 +119,8 @@ router.delete("/:id", async (req, res) => {
       data: { deletedAt: new Date() },
     });
     res.json({ message: "그룹 삭제 완료" });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    next(err);
   }
 });
 
