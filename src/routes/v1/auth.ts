@@ -1,5 +1,5 @@
 import express from "express";
-import pool from "../../pool";
+import prisma from "../../prisma";
 import bcrypt from "bcrypt";
 import { v4 } from "uuid";
 import generateJWTToken from "../../util/auth/generateJWTToken";
@@ -11,18 +11,15 @@ router.post("/login", async (req, res) => {
   const { id, password } = req.body;
 
   try {
-    const result = await pool.query(
-      'SELECT user_id, id, user_name, group_id, phone, admin, created_at, password FROM "user" WHERE id = $1 AND deleted_at IS NULL',
-      [id],
-    );
+    const user = await prisma.user.findFirst({
+      where: { id, deletedAt: null },
+    });
 
-    if (result.rows.length === 0) {
+    if (!user) {
       return res
         .status(401)
         .json({ error: "등록되지 않은 번호이거나 비밀번호가 틀렸습니다." });
     }
-
-    const user = result.rows[0];
 
     const isMatch = await bcrypt.compare(password, user.password);
 
@@ -32,23 +29,22 @@ router.post("/login", async (req, res) => {
         .json({ error: "등록되지 않은 번호이거나 비밀번호가 틀렸습니다." });
     }
 
-    const { password: _pw, ...filterUser } = user;
+    const { password: _pw, refreshToken: _rt, ...filterUser } = user;
 
     const accessToken = await generateJWTToken("access", filterUser);
     const refreshToken = await generateJWTToken("refresh", {
-      userId: user.user_id,
+      userId: user.userId,
     });
 
-    await pool.query(
-      `UPDATE "user" SET refresh_token = $1 WHERE user_id = $2 AND deleted_at IS NULL`,
-      [refreshToken, filterUser.user_id],
-    );
+    await prisma.user.update({
+      where: { userId: user.userId },
+      data: { refreshToken },
+    });
 
-    // 4. 응답 전송 (민감한 정보인 password는 제외)
     res.status(200).json({
       message: "로그인 성공",
-      accessToken: accessToken,
-      refreshToken: refreshToken,
+      accessToken,
+      refreshToken,
       user: filterUser,
     });
   } catch (err: any) {
@@ -67,21 +63,20 @@ router.post("/", async (req, res) => {
       userId: newUserId,
     });
 
-    const result = await pool.query(
-      `INSERT INTO "user" (user_id, id, user_name, phone, password, refresh_token) 
-       VALUES ($1, $2, $3, $4, $5 ,$6) RETURNING user_id, id, user_name, group_id, phone, admin, created_at`,
-      [newUserId, id, userName, phone, hashedPassword, refreshToken],
-    );
+    const user = await prisma.user.create({
+      data: {
+        userId: newUserId,
+        id,
+        userName,
+        phone,
+        password: hashedPassword,
+        refreshToken,
+      },
+    });
 
-    const user = result.rows[0];
+    const { password: _pw, refreshToken: _rt, ...filterUser } = user;
 
-    const filterUser = {
-      ...user,
-      password: undefined,
-      refresh_token: undefined,
-    };
-
-    const accessToken = await generateJWTToken("access", { ...filterUser });
+    const accessToken = await generateJWTToken("access", filterUser);
 
     res.status(201).json({
       message: "회원가입 및 로그인 성공",
@@ -107,13 +102,11 @@ router.post("/refresh", async (req, res) => {
       process.env.JWT_SECRET_REFRESH_TOKEN as string,
     ) as { userId: string };
 
-    // 2. DB에 저장된 토큰과 일치하는지 확인 (가장 중요!)
-    const result = await pool.query(
-      'SELECT user_id, group_id FROM "user" WHERE user_id = $1 AND refresh_token = $2',
-      [decoded.userId, refreshToken],
-    );
+    const user = await prisma.user.findFirst({
+      where: { userId: decoded.userId, refreshToken },
+    });
 
-    if (result.rows.length === 0) {
+    if (!user) {
       return res
         .status(401)
         .json({ error: "유효하지 않은 Refresh Token입니다." });
@@ -123,23 +116,18 @@ router.post("/refresh", async (req, res) => {
       userId: decoded.userId,
     });
 
-    const user = result.rows[0];
-    const filterUser = {
-      ...user,
-      password: undefined,
-      refresh_token: undefined,
-    };
+    await prisma.user.update({
+      where: { userId: decoded.userId },
+      data: { refreshToken: newRefreshToken },
+    });
 
-    await pool.query(
-      `UPDATE "user" SET refresh_token = $1 WHERE user_id = $2 AND deleted_at IS NULL`,
-      [newRefreshToken, filterUser.user_id],
-    );
-
-    const newAccessToken = await generateJWTToken("access", { ...filterUser });
+    const newAccessToken = await generateJWTToken("access", {
+      userId: user.userId,
+      groupId: user.groupId,
+    });
 
     res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
   } catch (err) {
-    // 토큰이 만료되었거나 변조된 경우
     res
       .status(401)
       .json({ error: "Refresh Token이 만료되었습니다. 다시 로그인하세요." });
@@ -154,18 +142,12 @@ router.post("/logout", async (req, res) => {
   }
 
   try {
-    await pool.query(
-      `
-      UPDATE "user" 
-      SET refresh_token = NULL 
-      WHERE refresh_token = $1
-    `,
-      [refreshToken],
-    );
-
-    res.status(200).json({
-      message: "로그아웃 처리 완료",
+    await prisma.user.updateMany({
+      where: { refreshToken },
+      data: { refreshToken: null },
     });
+
+    res.status(200).json({ message: "로그아웃 처리 완료" });
   } catch (err: any) {
     console.error("Logout Error:", err);
     return res

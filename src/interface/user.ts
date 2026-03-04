@@ -1,14 +1,14 @@
 interface User {
-  admin: boolean;
-  created_at: Date;
-  deleted_at: Date;
-  group_id: string;
+  userId: string;
+  groupId: string | null;
   id: string;
+  userName: string;
+  userProfile: string | null;
   phone: string;
-  updated_at: Date;
-  user_id: string;
-  user_name: string;
-  user_profile: string;
+  admin: boolean;
+  createdAt: Date;
+  updatedAt: Date | null;
+  deletedAt: Date | null;
 }
 
 export default User;

@@ -6,20 +6,27 @@
   "scripts": {
     "start": "node src/index.ts",
     "dev": "nodemon src/index.ts",
-    "build": "tsup src/index.ts --clean --format cjs"
+    "build": "prisma generate && tsup src/index.ts --clean --format cjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.22.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "prisma",
+      "@prisma/client"
+    ]
+  },
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dayjs": "^1.11.19",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.16.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "uuid": "9.0.1"
@@ -30,11 +37,11 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.10.2",
-    "@types/pg": "^8.18.0",
     "@types/uuid": "^9.0.8",
     "eslint": "^9.39.1",
     "nodemon": "^3.1.11",
     "prettier": "3.7.4",
+    "prisma": "^5.22.0",
     "tsup": "^8.5.1"
   }
 }

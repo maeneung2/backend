@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userId        String         @id @default(uuid()) @map("user_id")
+  groupId       String?        @map("group_id")
+  id            String         @unique
+  userName      String         @map("user_name")
+  userProfile   String?        @map("user_profile")
+  phone         String
+  password      String
+  admin         Boolean        @default(false)
+  refreshToken  String?        @map("refresh_token")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime?      @updatedAt @map("updated_at")
+  deletedAt     DateTime?      @map("deleted_at")
+  notes         Note[]
+  notices       Notice[]
+  comments      Comment[]
+  notifications Notification[]
+  settings      Setting[]
+
+  @@map("user")
+}
+
+model Group {
+  groupId      String    @id @default(uuid()) @map("group_id")
+  groupName    String    @map("group_name")
+  groupUsers   String[]  @map("group_users")
+  groupProfile String?   @map("group_profile")
+  owner        String
+  scheduleId   String    @map("schedule_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime? @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  schedule     Schedule  @relation(fields: [scheduleId], references: [scheduleId])
+  notes        Note[]
+  notices      Notice[]
+  comments     Comment[]
+
+  @@map("group")
+}
+
+model Schedule {
+  scheduleId String    @id @default(uuid()) @map("schedule_id")
+  schedule   String[]
+  groupId    String    @map("group_id")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime? @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  groups     Group[]
+
+  @@map("schedule")
+}
+
+model Note {
+  noteId    String    @id @default(uuid()) @map("note_id")
+  groupId   String    @map("group_id")
+  writer    String
+  content   String
+  date      DateTime
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  group     Group     @relation(fields: [groupId], references: [groupId])
+  user      User      @relation(fields: [writer], references: [userId])
+
+  @@map("note")
+}
+
+model Notice {
+  noticeId  String    @id @default(uuid()) @map("notice_id")
+  title     String
+  content   String
+  image     String[]
+  groupId   String    @map("group_id")
+  writer    String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  group     Group     @relation(fields: [groupId], references: [groupId])
+  user      User      @relation(fields: [writer], references: [userId])
+  comments  Comment[]
+
+  @@map("notice")
+}
+
+model Comment {
+  commentId       String    @id @default(uuid()) @map("comment_id")
+  groupId         String    @map("group_id")
+  writer          String
+  noticeId        String    @map("notice_id")
+  targetCommentId String?   @map("target_comment_id")
+  content         String
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime? @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+  group           Group     @relation(fields: [groupId], references: [groupId])
+  user            User      @relation(fields: [writer], references: [userId])
+  notice          Notice    @relation(fields: [noticeId], references: [noticeId])
+
+  @@map("comment")
+}
+
+model Notification {
+  notificationId String    @id @default(uuid()) @map("notification_id")
+  userId         String    @map("user_id")
+  type           Int
+  content        String
+  url            String
+  read           Boolean   @default(false)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  deletedAt      DateTime? @map("deleted_at")
+  user           User      @relation(fields: [userId], references: [userId])
+
+  @@map("notification")
+}
+
+model Setting {
+  settingId String    @id @default(uuid()) @map("setting_id")
+  userId    String    @map("user_id")
+  key       String
+  value     String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  user      User      @relation(fields: [userId], references: [userId])
+
+  @@map("setting")
+}
