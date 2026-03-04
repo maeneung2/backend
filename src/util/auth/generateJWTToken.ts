@@ -10,7 +10,7 @@ const generateJWTToken = async (
       ? process.env.JWT_SECRET_TOKEN!
       : process.env.JWT_SECRET_REFRESH_TOKEN!,
     {
-      expiresIn: type === "access" ? "1h" : "7d",
+      expiresIn: type === "access" ? "20s" : "7d",
     },
   );
 };
