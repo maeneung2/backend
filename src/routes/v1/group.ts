@@ -27,15 +27,13 @@ registry.registerPath({ method: "delete", path: "/api/v1/group/{id}", tags: ["Gr
   ...auth, request: { params: idParam }, responses: { 200: { description: "그룹 삭제 성공" } } });
 
 router.post("/", validate(createGroupSchema), async (req, res, next) => {
-  const { groupName, groupProfile, scheduleId } = req.body;
+  const { groupName } = req.body;
   const owner = req.user!.userId;
   try {
     const data = await prisma.group.create({
       data: {
         groupName,
-        groupProfile,
         owner,
-        scheduleId,
         members: { connect: { userId: owner } },
       },
       include: { members: { select: { userId: true, userName: true } } },

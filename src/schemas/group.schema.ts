@@ -2,8 +2,6 @@ import { z } from "zod";
 
 export const createGroupSchema = z.object({
   groupName: z.string().min(1, "그룹 이름을 입력해주세요."),
-  groupProfile: z.string().optional(),
-  scheduleId: z.string().uuid("올바른 스케줄 ID를 입력해주세요."),
 });
 
 export const updateGroupSchema = z.object({

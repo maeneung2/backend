@@ -15,18 +15,18 @@ model User {
   userProfile   String?        @map("user_profile")
   phone         String?
   password      String?
-  admin         Boolean        @default(false)
   refreshToken  String?        @map("refresh_token")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime?      @updatedAt @map("updated_at")
   deletedAt     DateTime?      @map("deleted_at")
   group         Group?         @relation(fields: [groupId], references: [groupId])
+  oauthAccounts OAuthAccount[]
+  shiftWorkers  ShiftWorker[]
   notes         Note[]
   notices       Notice[]
   comments      Comment[]
   notifications Notification[]
   settings      Setting[]
-  oauthAccounts OAuthAccount[]
 
   @@map("user")
 }
@@ -45,16 +45,15 @@ model OAuthAccount {
 }
 
 model Group {
-  groupId      String    @id @default(uuid()) @map("group_id")
-  groupName    String    @map("group_name")
-  groupProfile String?   @map("group_profile")
+  groupId      String     @id @default(uuid()) @map("group_id")
+  groupName    String     @map("group_name")
+  groupProfile String?    @map("group_profile")
   owner        String
-  scheduleId   String    @map("schedule_id")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime? @updatedAt @map("updated_at")
-  deletedAt    DateTime? @map("deleted_at")
-  schedule     Schedule  @relation(fields: [scheduleId], references: [scheduleId])
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime?  @updatedAt @map("updated_at")
+  deletedAt    DateTime?  @map("deleted_at")
   members      User[]
+  schedules    Schedule[]
   notes        Note[]
   notices      Notice[]
   comments     Comment[]
@@ -63,15 +62,34 @@ model Group {
 }
 
 model Schedule {
-  scheduleId String    @id @default(uuid()) @map("schedule_id")
-  schedule   String[]
-  groupId    String    @map("group_id")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime? @updatedAt @map("updated_at")
-  deletedAt  DateTime? @map("deleted_at")
-  groups     Group[]
+  scheduleId    String        @id @default(uuid()) @map("schedule_id")
+  groupId       String        @map("group_id")
+  date          String
+  schedule      Json
+  selectedDay   Json          @map("selected_day")
+  selectedNight Json          @map("selected_night")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime?     @updatedAt @map("updated_at")
+  deletedAt     DateTime?     @map("deleted_at")
+  group         Group         @relation(fields: [groupId], references: [groupId])
+  workers       ShiftWorker[]
 
   @@map("schedule")
+}
+
+model ShiftWorker {
+  id              String   @id @default(uuid())
+  scheduleId      String   @map("schedule_id")
+  userId          String   @map("user_id")
+  admin           Boolean  @default(false)
+  isNight         Boolean  @map("is_night")
+  isNew           Boolean  @default(false) @map("is_new")
+  targetWorkCount Int      @map("target_work_count")
+  createdAt       DateTime @default(now()) @map("created_at")
+  schedule        Schedule @relation(fields: [scheduleId], references: [scheduleId])
+  user            User     @relation(fields: [userId], references: [userId])
+
+  @@map("shift_worker")
 }
 
 model Note {
