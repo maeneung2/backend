@@ -24,7 +24,7 @@ router.get("/me", async (req, res, next) => {
   try {
     const data = await prisma.user.findFirst({
       where: { userId: req.user!.userId, deletedAt: null },
-      select: { userId: true, userName: true, userProfile: true, groupId: true, phone: true, admin: true },
+      select: { userId: true, userName: true, userProfile: true, groupId: true, phone: true },
     });
     if (!data) return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
     res.json({ data });
@@ -42,7 +42,6 @@ router.get("/list", async (req, res, next) => {
         userName: true,
         groupId: true,
         phone: true,
-        admin: true,
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
@@ -58,7 +57,7 @@ router.get("/:id", async (req, res, next) => {
   try {
     const data = await prisma.user.findFirst({
       where: { userId: id, deletedAt: null },
-      select: { userId: true, userName: true, groupId: true, admin: true },
+      select: { userId: true, userName: true, groupId: true },
     });
     if (!data)
       return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
@@ -70,14 +69,14 @@ router.get("/:id", async (req, res, next) => {
 
 router.patch("/:id", validate(updateUserSchema), async (req, res, next) => {
   const { id } = req.params;
-  const { userName, groupId, phone, admin } = req.body;
+  const { userName, groupId, phone } = req.body;
   try {
     const existing = await prisma.user.findFirst({
       where: { userId: id, deletedAt: null },
     });
     if (!existing)
       return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
-    if (req.user!.userId !== id && !req.user!.admin)
+    if (req.user!.userId !== id)
       return res.status(403).json({ error: "권한이 없습니다." });
 
     const data = await prisma.user.update({
@@ -86,14 +85,12 @@ router.patch("/:id", validate(updateUserSchema), async (req, res, next) => {
         userName: userName ?? undefined,
         groupId: groupId ?? undefined,
         phone: phone ?? undefined,
-        admin: admin ?? undefined,
       },
       select: {
         userId: true,
         userName: true,
         groupId: true,
         phone: true,
-        admin: true,
       },
     });
     res.json({ data });
@@ -104,7 +101,7 @@ router.patch("/:id", validate(updateUserSchema), async (req, res, next) => {
 
 router.delete("/:id", async (req, res, next) => {
   const { id } = req.params;
-  if (req.user!.userId !== id && !req.user!.admin)
+  if (req.user!.userId !== id)
     return res.status(403).json({ error: "권한이 없습니다." });
   try {
     const result = await prisma.user.updateMany({

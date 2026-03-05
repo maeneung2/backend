@@ -5,7 +5,6 @@ interface User {
   userName: string;
   userProfile: string | null;
   phone: string;
-  admin: boolean;
   createdAt: Date;
   updatedAt: Date | null;
   deletedAt: Date | null;

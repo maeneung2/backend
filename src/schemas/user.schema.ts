@@ -7,5 +7,4 @@ export const updateUserSchema = z.object({
     .string()
     .regex(/^\d{10,11}$/, "올바른 전화번호를 입력해주세요.")
     .optional(),
-  admin: z.boolean().optional(),
 });
