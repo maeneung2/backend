@@ -30,12 +30,16 @@ router.post("/", validate(createGroupSchema), async (req, res, next) => {
   const { groupName } = req.body;
   const owner = req.user!.userId;
   try {
-    const data = await prisma.group.create({
-      data: {
-        groupName,
-        owner,
-        members: { connect: { userId: owner } },
-      },
+    const group = await prisma.group.create({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: { groupName, owner } as any,
+    });
+    await prisma.user.update({
+      where: { userId: owner },
+      data: { groupId: group.groupId },
+    });
+    const data = await prisma.group.findFirst({
+      where: { groupId: group.groupId },
       include: { members: { select: { userId: true, userName: true } } },
     });
     res.status(201).json({ data });
