@@ -10,11 +10,11 @@ datasource db {
 model User {
   userId        String         @id @default(uuid()) @map("user_id")
   groupId       String?        @map("group_id")
-  id            String         @unique
+  id            String?        @unique
   userName      String         @map("user_name")
   userProfile   String?        @map("user_profile")
-  phone         String
-  password      String
+  phone         String?
+  password      String?
   admin         Boolean        @default(false)
   refreshToken  String?        @map("refresh_token")
   createdAt     DateTime       @default(now()) @map("created_at")
@@ -26,8 +26,22 @@ model User {
   comments      Comment[]
   notifications Notification[]
   settings      Setting[]
+  oauthAccounts OAuthAccount[]
 
   @@map("user")
+}
+
+model OAuthAccount {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  provider   String
+  providerId String   @map("provider_id")
+  email      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [userId])
+
+  @@unique([provider, providerId])
+  @@map("oauth_account")
 }
 
 model Group {

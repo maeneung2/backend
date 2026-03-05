@@ -37,6 +37,12 @@ router.post("/login", validate(loginSchema), async (req, res, next) => {
         .json({ error: "등록되지 않은 번호이거나 비밀번호가 틀렸습니다." });
     }
 
+    if (!user.password) {
+      return res
+        .status(401)
+        .json({ error: "소셜 로그인으로 가입된 계정입니다." });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {

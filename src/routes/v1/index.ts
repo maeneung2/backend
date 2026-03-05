@@ -8,12 +8,14 @@ import comment from "./comment";
 import notification from "./notification";
 import authMiddleware from "../../middleware/authHandler";
 import auth from "./auth";
+import oauth from "./oauth";
 
 const router = express.Router();
 
 router.get("/", (req, res) => res.send({ data: "정상작동" }));
 
 router.use("/auth", auth);
+router.use("/auth/oauth", oauth);
 router.use("/user", authMiddleware, user);
 router.use("/schedule", authMiddleware, schedule);
 router.use("/notice", authMiddleware, notice);
