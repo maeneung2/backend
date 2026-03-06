@@ -82,6 +82,67 @@ registry.registerPath({
   request: { params: idParam },
   responses: { 200: { description: "그룹 삭제 성공" } },
 });
+// GET /group/:id/summary — 그룹 정보 + 공지사항 5개 + 인수인계 5개
+router.get("/:id/summary", async (req, res, next) => {
+  const { id } = req.params;
+  try {
+    const [group, notices, notes] = await Promise.all([
+      prisma.group.findFirst({
+        where: { groupId: id, deletedAt: null },
+        include: {
+          members: {
+            where: { deletedAt: null },
+            select: { userId: true, userName: true, userProfile: true },
+          },
+        },
+      }),
+      prisma.notice.findMany({
+        where: { groupId: id, deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { noticeId: true, title: true, createdAt: true },
+      }),
+      prisma.note.findMany({
+        where: { groupId: id, deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { noteId: true, content: true, date: true, createdAt: true },
+      }),
+    ]);
+
+    if (!group) return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
+
+    res.json({ data: { group, notices, notes } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /group/:id/schedule?date=YYYY-MM-DD — 해당 월 전체 스케줄
+router.get("/:id/schedule", async (req, res, next) => {
+  const { id } = req.params;
+  const { date } = req.query as { date?: string };
+  try {
+    const now = date ? new Date(date) : new Date();
+    const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+    const schedule = await prisma.schedule.findFirst({
+      where: { groupId: id, date: { startsWith: yearMonth }, deletedAt: null },
+      include: {
+        workers: {
+          orderBy: { createdAt: "asc" },
+          include: {
+            user: { select: { userId: true, userName: true, userProfile: true } },
+          },
+        },
+      },
+    });
+
+    res.json({ data: schedule ?? null });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.post("/", validate(createGroupSchema), async (req, res, next) => {
   const { groupName } = req.body;
@@ -182,9 +243,7 @@ router.post(
         select: { userId: true, userName: true },
       });
       res.json({ data });
-    } catch (err) {
-      next(err);
-    }
+    } catch (err) {}
   },
 );
 
