@@ -53,7 +53,7 @@ const applySchedule = (
       );
 
     candidates = candidates.filter(
-      (w) => worker[w].workCount < numDays - worker[w].targetWorkCount - 1,
+      (w) => worker[w].workCount < worker[w].targetWorkCount - 1,
     );
 
     if (day > 0) {
@@ -121,7 +121,7 @@ const applySchedule = (
 
     candidates = candidates.filter(
       (w) =>
-        worker[w].workCount < numDays - worker[w].targetWorkCount &&
+        worker[w].workCount < worker[w].targetWorkCount &&
         schedule[w][day] === 0,
     );
 

@@ -1,11 +1,20 @@
 import express from "express";
 import prisma from "../../prisma";
 import { validate } from "../../middleware/validate";
-import { generateScheduleSchema, updateCellSchema } from "../../schemas/schedule.schema";
+import {
+  generateScheduleSchema,
+  updateCellSchema,
+} from "../../schemas/schedule.schema";
 import makeDaySchedule from "../../util/schedule/makeDaySchedule";
 import makeNightSchedule from "../../util/schedule/makeNightSchedule";
 import changeSchedule from "../../util/schedule/changeSchedule";
-import { buildScheduleState, computeAloneCount, computeDayWorkCount, computeNightWorkCount, getWeekdayCount } from "../../util/schedule/helpers";
+import {
+  buildScheduleState,
+  computeAloneCount,
+  computeDayWorkCount,
+  computeNightWorkCount,
+  getWeekdayCount,
+} from "../../util/schedule/helpers";
 import { ScheduleState } from "../../util/schedule/types";
 
 const router = express.Router();
@@ -18,6 +27,20 @@ router.get("/init", async (req, res, next) => {
     return res.status(400).json({ error: "groupId와 date가 필요합니다." });
 
   try {
+    const yearMonth = (date as string).slice(0, 7);
+    const existing = await prisma.schedule.findFirst({
+      where: {
+        groupId,
+        date: { startsWith: yearMonth },
+        deletedAt: null,
+      },
+    });
+    if (existing)
+      return res
+        .status(409)
+        .json({ error: "해당 월에 이미 스케줄이 존재합니다." });
+
+
     const d = new Date(date);
     const year = d.getFullYear();
     const month = d.getMonth();
@@ -32,42 +55,22 @@ router.get("/init", async (req, res, next) => {
       if ((firstWeekday + i) % 7 === 6) selectedDay.push(i);
     }
 
-    // 이전 스케줄 있으면 ShiftWorker, 없으면 그룹 멤버
-    const prevSchedule = await prisma.schedule.findFirst({
+    const group = await prisma.group.findFirst({
       where: { groupId, deletedAt: null },
-      orderBy: { createdAt: "desc" },
-      include: { workers: { include: { user: { select: { userId: true, userName: true, userProfile: true } } } } },
+      include: { members: { where: { deletedAt: null } } },
     });
 
-    let workers;
+    if (!group?.members.length)
+      return res.status(400).json({ error: "그룹에 멤버가 없습니다." });
 
-    if (prevSchedule?.workers.length) {
-      workers = prevSchedule.workers.map((w) => ({
-        userId: w.userId,
-        userName: w.user.userName,
-        userProfile: w.user.userProfile,
-        isNight: w.isNight,
-        targetWorkCount: w.targetWorkCount,
-        admin: w.admin,
-      }));
-    } else {
-      const group = await prisma.group.findFirst({
-        where: { groupId, deletedAt: null },
-        include: { members: { where: { deletedAt: null } } },
-      });
-
-      if (!group?.members.length)
-        return res.status(400).json({ error: "그룹에 멤버가 없습니다." });
-
-      workers = group.members.map((u) => ({
-        userId: u.userId,
-        userName: u.userName,
-        userProfile: u.userProfile,
-        isNight: false,
-        targetWorkCount,
-        admin: false,
-      }));
-    }
+    const workers = group.members.map((u) => ({
+      userId: u.userId,
+      userName: u.userName,
+      userProfile: u.userProfile,
+      isNight: false,
+      targetWorkCount,
+      admin: false,
+    }));
 
     res.json({
       data: {
@@ -84,11 +87,103 @@ router.get("/init", async (req, res, next) => {
   }
 });
 
-// POST /schedule - 스케줄 생성 + 자동 배치
-router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
-  const { groupId, date, selectedDay, selectedNight, schedule: inputSchedule } = req.body;
+// GET /schedule - 그룹 스케줄 목록 조회
+router.get("/", async (req, res, next) => {
+  const { groupId } = req.query as { groupId: string };
+
+  if (!groupId)
+    return res.status(400).json({ error: "groupId가 필요합니다." });
 
   try {
+    const data = await prisma.schedule.findMany({
+      where: { groupId, deletedAt: null },
+      orderBy: { date: "desc" },
+      select: {
+        scheduleId: true,
+        groupId: true,
+        date: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /schedule/preview - DB 저장 없이 스케줄 생성 결과만 반환
+router.post("/preview", async (req, res, next) => {
+  const {
+    groupId,
+    date,
+    selectedDay,
+    selectedNight,
+    schedule: inputSchedule,
+    members,
+  } = req.body;
+
+  try {
+    const shiftWorkerInputs = members.map((m: any) => ({
+      userId: m.userId,
+      isNight: m.isNight,
+      targetWorkCount: m.targetWorkCount,
+      isNew: false,
+      admin: m.admin,
+    }));
+
+    const state = buildScheduleState({
+      date,
+      schedule: inputSchedule,
+      selectedDay,
+      selectedNight,
+      shiftWorkers: shiftWorkerInputs,
+    });
+
+    Object.assign(state, makeDaySchedule(state));
+    Object.assign(state, makeNightSchedule(state));
+
+    res.json({
+      data: {
+        groupId,
+        date,
+        selectedDay,
+        selectedNight,
+        schedule: state.schedule,
+        members,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /schedule - 스케줄 생성 + 자동 배치
+router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
+  const {
+    groupId,
+    date,
+    selectedDay,
+    selectedNight,
+    schedule: inputSchedule,
+  } = req.body;
+
+  try {
+    // 같은 달 스케줄 중복 생성 방지
+    const yearMonth = date.slice(0, 7); // "YYYY-MM"
+    const existing = await prisma.schedule.findFirst({
+      where: {
+        groupId,
+        date: { startsWith: yearMonth },
+        deletedAt: null,
+      },
+    });
+    if (existing)
+      return res
+        .status(409)
+        .json({ error: "해당 월에 이미 스케줄이 존재합니다." });
+
     // 이전 스케줄에서 ShiftWorker 설정 불러오기, 없으면 그룹 멤버에서 fallback
     const prevSchedule = await prisma.schedule.findFirst({
       where: { groupId, deletedAt: null },
@@ -132,8 +227,8 @@ router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
     const state = buildScheduleState({
       date,
       schedule: inputSchedule,
-      selectedDay,
-      selectedNight,
+      selectedDay: [],
+      selectedNight: [],
       shiftWorkers: shiftWorkerInputs,
     });
 
@@ -159,7 +254,15 @@ router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
           })),
         },
       },
-      include: { workers: { include: { user: { select: { userId: true, userName: true, userProfile: true } } } } },
+      include: {
+        workers: {
+          include: {
+            user: {
+              select: { userId: true, userName: true, userProfile: true },
+            },
+          },
+        },
+      },
     });
 
     res.status(201).json({ data });
@@ -174,9 +277,18 @@ router.get("/:id", async (req, res, next) => {
   try {
     const data = await prisma.schedule.findFirst({
       where: { scheduleId: id, deletedAt: null },
-      include: { workers: { include: { user: { select: { userId: true, userName: true, userProfile: true } } } } },
+      include: {
+        workers: {
+          include: {
+            user: {
+              select: { userId: true, userName: true, userProfile: true },
+            },
+          },
+        },
+      },
     });
-    if (!data) return res.status(404).json({ error: "스케줄을 찾을 수 없습니다." });
+    if (!data)
+      return res.status(404).json({ error: "스케줄을 찾을 수 없습니다." });
     res.json({ data });
   } catch (err) {
     next(err);
@@ -191,68 +303,81 @@ router.get("/:id/me", async (req, res, next) => {
       where: { scheduleId: id, deletedAt: null },
       include: { workers: true },
     });
-    if (!schedule) return res.status(404).json({ error: "스케줄을 찾을 수 없습니다." });
+    if (!schedule)
+      return res.status(404).json({ error: "스케줄을 찾을 수 없습니다." });
 
-    const myWorkerIdx = schedule.workers.findIndex((w) => w.userId === req.user!.userId);
-    if (myWorkerIdx === -1) return res.status(404).json({ error: "해당 스케줄에 포함되어 있지 않습니다." });
+    const myWorkerIdx = schedule.workers.findIndex(
+      (w) => w.userId === req.user!.userId,
+    );
+    if (myWorkerIdx === -1)
+      return res
+        .status(404)
+        .json({ error: "해당 스케줄에 포함되어 있지 않습니다." });
 
     const mySchedule = (schedule.schedule as number[][])[myWorkerIdx];
-    res.json({ data: { schedule: mySchedule, worker: schedule.workers[myWorkerIdx] } });
+    res.json({
+      data: { schedule: mySchedule, worker: schedule.workers[myWorkerIdx] },
+    });
   } catch (err) {
     next(err);
   }
 });
 
 // PATCH /schedule/:id/cell - 셀 수동 변경
-router.patch("/:id/cell", validate(updateCellSchema), async (req, res, next) => {
-  const { id } = req.params;
-  const { emp, day, workType } = req.body;
+router.patch(
+  "/:id/cell",
+  validate(updateCellSchema),
+  async (req, res, next) => {
+    const { id } = req.params;
+    const { emp, day, workType } = req.body;
 
-  try {
-    const existing = await prisma.schedule.findFirst({
-      where: { scheduleId: id, deletedAt: null },
-      include: { workers: true },
-    });
-    if (!existing) return res.status(404).json({ error: "스케줄을 찾을 수 없습니다." });
+    try {
+      const existing = await prisma.schedule.findFirst({
+        where: { scheduleId: id, deletedAt: null },
+        include: { workers: true },
+      });
+      if (!existing)
+        return res.status(404).json({ error: "스케줄을 찾을 수 없습니다." });
 
-    const grid = existing.schedule as number[][];
-    const d = new Date(existing.date);
-    const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      const grid = existing.schedule as number[][];
+      const d = new Date(existing.date);
+      const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
 
-    const state: ScheduleState = {
-      date: existing.date,
-      weekday: new Date(existing.date).getDay(),
-      numDays,
-      group: 0,
-      schedule: grid,
-      selectedDay: existing.selectedDay as number[],
-      selectedNight: existing.selectedNight as number[],
-      worker: existing.workers.map((w, i) => ({
-        name: w.userId,
-        isNight: w.isNight,
-        targetWorkCount: w.targetWorkCount,
-        isNew: w.isNew,
-        workCount: grid[i].filter((c) => [1, 2, 3, 4].includes(c)).length,
-      })),
-      aloneCount: computeAloneCount(grid, numDays),
-      dayGroup: [0, 0, 0, 0],
-      nightGroup: [0, 0, 0, 0],
-      dayWorkCount: computeDayWorkCount(grid, numDays),
-      nightWorkCount: computeNightWorkCount(grid, numDays),
-    };
+      const state: ScheduleState = {
+        date: existing.date,
+        weekday: new Date(existing.date).getDay(),
+        numDays,
+        group: 0,
+        schedule: grid,
+        selectedDay: existing.selectedDay as number[],
+        selectedNight: existing.selectedNight as number[],
+        worker: existing.workers.map((w, i) => ({
+          name: w.userId,
+          isNight: w.isNight,
+          targetWorkCount: w.targetWorkCount,
+          isNew: w.isNew,
+          workCount: grid[i].filter((c) => [1, 2, 3, 4].includes(c)).length,
+        })),
+        aloneCount: computeAloneCount(grid, numDays),
+        dayGroup: [0, 0, 0, 0],
+        nightGroup: [0, 0, 0, 0],
+        dayWorkCount: computeDayWorkCount(grid, numDays),
+        nightWorkCount: computeNightWorkCount(grid, numDays),
+      };
 
-    const result = changeSchedule(state, emp, day, workType);
+      const result = changeSchedule(state, emp, day, workType);
 
-    const data = await prisma.schedule.update({
-      where: { scheduleId: id },
-      data: { schedule: result.schedule ?? grid },
-    });
+      const data = await prisma.schedule.update({
+        where: { scheduleId: id },
+        data: { schedule: result.schedule ?? grid },
+      });
 
-    res.json({ data });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // DELETE /schedule/:id
 router.delete("/:id", async (req, res, next) => {

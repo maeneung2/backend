@@ -10,5 +10,5 @@ export const updateGroupSchema = z.object({
 });
 
 export const addMemberSchema = z.object({
-  userId: z.string().uuid("올바른 유저 ID를 입력해주세요."),
+  id: z.string(),
 });

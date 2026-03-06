@@ -33,6 +33,40 @@ router.post("/", validate(createNoteSchema), async (req, res, next) => {
   }
 });
 
+// GET /note/list/by-date?date=YYYY-MM-DD - 특정 날짜 인수인계 목록 (내 그룹)
+router.get("/list/by-date", async (req, res, next) => {
+  const { date } = req.query as { date: string };
+  const groupId = req.user!.groupId;
+
+  if (!date)
+    return res.status(400).json({ error: "date가 필요합니다." });
+  if (!groupId)
+    return res.status(400).json({ error: "그룹에 속해 있지 않습니다." });
+
+  try {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    const data = await prisma.note.findMany({
+      where: {
+        groupId,
+        date: { gte: start, lte: end },
+        deletedAt: null,
+      },
+      orderBy: { date: "asc" },
+      include: {
+        user: { select: { userId: true, userName: true, userProfile: true } },
+      },
+    });
+
+    res.json({ data, total: data.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/list", async (req, res, next) => {
   const { groupId } = req.query;
   try {
