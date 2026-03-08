@@ -5,6 +5,7 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { errorHandler } from "./middleware/errorHandler";
 import { generateOpenApiSpec } from "./docs/openapi";
+import { setBucketCors } from "./util/s3";
 
 const app = express();
 const port = 3000;
@@ -70,4 +71,5 @@ app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`포트 : ${port}`);
+  setBucketCors().catch((e) => console.error("S3 CORS 설정 실패:", e));
 });

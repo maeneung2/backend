@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, PutBucketCorsCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
 
@@ -45,4 +45,26 @@ export async function createPresignedUrl(
 
 export function getPublicUrl(key: string): string {
   return `https://${BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+}
+
+export async function setBucketCors(): Promise<void> {
+  const command = new PutBucketCorsCommand({
+    Bucket: BUCKET,
+    CORSConfiguration: {
+      CORSRules: [
+        {
+          AllowedOrigins: [
+            "http://localhost:5173",
+            "http://mn.s3.find-bibun.dev.s3-website.ap-northeast-2.amazonaws.com",
+            "http://mn.s3.find-bibun.prod.s3-website.ap-northeast-2.amazonaws.com",
+          ],
+          AllowedMethods: ["PUT", "GET"],
+          AllowedHeaders: ["*"],
+          ExposeHeaders: ["ETag"],
+          MaxAgeSeconds: 3000,
+        },
+      ],
+    },
+  });
+  await s3.send(command);
 }
