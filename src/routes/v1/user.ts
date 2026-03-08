@@ -69,7 +69,7 @@ router.get("/:id", async (req, res, next) => {
 
 router.patch("/:id", validate(updateUserSchema), async (req, res, next) => {
   const { id } = req.params;
-  const { userName, groupId, phone } = req.body;
+  const { userName, groupId, phone, userProfile } = req.body;
   try {
     const existing = await prisma.user.findFirst({
       where: { userId: id, deletedAt: null },
@@ -85,10 +85,12 @@ router.patch("/:id", validate(updateUserSchema), async (req, res, next) => {
         userName: userName ?? undefined,
         groupId: groupId ?? undefined,
         phone: phone ?? undefined,
+        userProfile: userProfile !== undefined ? userProfile : undefined,
       },
       select: {
         userId: true,
         userName: true,
+        userProfile: true,
         groupId: true,
         phone: true,
       },
