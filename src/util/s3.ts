@@ -44,7 +44,7 @@ export async function createPresignedUrl(
 }
 
 export function getPublicUrl(key: string): string {
-  return `https://${BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+  return `https://s3.${process.env.AWS_REGION}.amazonaws.com/${BUCKET}/${key}`;
 }
 
 export async function setBucketCors(): Promise<void> {
