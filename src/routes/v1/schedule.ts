@@ -40,7 +40,6 @@ router.get("/init", async (req, res, next) => {
         .status(409)
         .json({ error: "해당 월에 이미 스케줄이 존재합니다." });
 
-
     const d = new Date(date);
     const year = d.getFullYear();
     const month = d.getMonth();
@@ -69,7 +68,6 @@ router.get("/init", async (req, res, next) => {
       userProfile: u.userProfile,
       isNight: false,
       targetWorkCount,
-      admin: false,
     }));
 
     res.json({
@@ -91,8 +89,7 @@ router.get("/init", async (req, res, next) => {
 router.get("/", async (req, res, next) => {
   const { groupId } = req.query as { groupId: string };
 
-  if (!groupId)
-    return res.status(400).json({ error: "groupId가 필요합니다." });
+  if (!groupId) return res.status(400).json({ error: "groupId가 필요합니다." });
 
   try {
     const data = await prisma.schedule.findMany({
@@ -188,7 +185,7 @@ router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
     const prevSchedule = await prisma.schedule.findFirst({
       where: { groupId, deletedAt: null },
       orderBy: { createdAt: "desc" },
-      include: { workers: true },
+      include: { workers: { include: { user: true } } },
     });
 
     let shiftWorkerInputs;
@@ -199,7 +196,6 @@ router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
         isNight: w.isNight,
         targetWorkCount: w.targetWorkCount,
         isNew: w.isNew,
-        admin: w.admin,
       }));
     } else {
       // 최초 스케줄 생성 - 그룹 멤버에서 불러오기
@@ -219,7 +215,6 @@ router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
         isNight: false,
         targetWorkCount,
         isNew: false,
-        admin: false,
       }));
     }
 
@@ -250,7 +245,6 @@ router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
             isNight: w.isNight,
             targetWorkCount: w.targetWorkCount,
             isNew: false,
-            admin: w.admin,
           })),
         },
       },
