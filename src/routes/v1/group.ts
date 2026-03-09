@@ -100,17 +100,29 @@ router.get("/:id/summary", async (req, res, next) => {
         where: { groupId: id, deletedAt: null },
         orderBy: { createdAt: "desc" },
         take: 5,
-        select: { noticeId: true, title: true, createdAt: true },
+        select: {
+          noticeId: true,
+          title: true,
+          createdAt: true,
+          user: { select: { userId: true, userName: true, userProfile: true } },
+        },
       }),
       prisma.note.findMany({
         where: { groupId: id, deletedAt: null },
         orderBy: { createdAt: "desc" },
         take: 5,
-        select: { noteId: true, content: true, date: true, createdAt: true },
+        select: {
+          noteId: true,
+          content: true,
+          date: true,
+          createdAt: true,
+          user: { select: { userId: true, userName: true, userProfile: true } },
+        },
       }),
     ]);
 
-    if (!group) return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
+    if (!group)
+      return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
 
     res.json({ data: { group, notices, notes } });
   } catch (err) {
@@ -132,7 +144,9 @@ router.get("/:id/schedule", async (req, res, next) => {
         workers: {
           orderBy: { createdAt: "asc" },
           include: {
-            user: { select: { userId: true, userName: true, userProfile: true } },
+            user: {
+              select: { userId: true, userName: true, userProfile: true },
+            },
           },
         },
       },

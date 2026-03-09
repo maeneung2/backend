@@ -41,20 +41,30 @@ router.get("/", async (req, res, next) => {
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const todayIndex = now.getDate() - 1;
 
+    const group = await prisma.group.findUnique({
+      where: { groupId },
+      select: { groupId: true, groupName: true, groupProfile: true },
+    });
+
     const rawSchedule = await prisma.schedule.findFirst({
       where: { groupId, date: { startsWith: yearMonth }, deletedAt: null },
       include: {
         workers: {
           orderBy: { createdAt: "asc" },
           include: {
-            user: { select: { userId: true, userName: true, userProfile: true } },
+            user: {
+              select: { userId: true, userName: true, userProfile: true },
+            },
           },
         },
       },
     });
 
     // 오늘의 근무자 (주간: 1, 야간: 2)
-    const todayWorkers: { day: object[]; night: object[] } = { day: [], night: [] };
+    const todayWorkers: { day: object[]; night: object[] } = {
+      day: [],
+      night: [],
+    };
     if (rawSchedule) {
       const grid = rawSchedule.schedule as number[][];
       rawSchedule.workers.forEach((worker, idx) => {
@@ -77,7 +87,7 @@ router.get("/", async (req, res, next) => {
       },
     });
 
-    res.json({ data: { todayWorkers, todayNotes } });
+    res.json({ data: { group, todayWorkers, todayNotes } });
   } catch (err) {
     next(err);
   }
@@ -96,7 +106,15 @@ router.get("/schedule", async (req, res, next) => {
     const now = date ? new Date(date) : new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const monthEnd = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
 
     const [rawSchedule, notes] = await Promise.all([
       prisma.schedule.findFirst({
@@ -104,7 +122,11 @@ router.get("/schedule", async (req, res, next) => {
         include: { workers: { orderBy: { createdAt: "asc" } } },
       }),
       prisma.note.findMany({
-        where: { groupId, date: { gte: monthStart, lte: monthEnd }, deletedAt: null },
+        where: {
+          groupId,
+          date: { gte: monthStart, lte: monthEnd },
+          deletedAt: null,
+        },
         select: { date: true },
       }),
     ]);

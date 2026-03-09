@@ -9,16 +9,57 @@ const router = express.Router();
 
 const idParam = z.object({ id: z.string().uuid() });
 
-registry.registerPath({ method: "post", path: "/api/v1/note", tags: ["Note"], summary: "인수인계 생성",
-  ...auth, request: body(createNoteSchema), responses: { 201: { description: "인수인계 생성 성공" } } });
-registry.registerPath({ method: "get", path: "/api/v1/note/list", tags: ["Note"], summary: "인수인계 목록 조회",
-  ...auth, request: { query: z.object({ groupId: z.string().uuid() }) }, responses: { 200: { description: "인수인계 목록" } } });
-registry.registerPath({ method: "get", path: "/api/v1/note/{id}", tags: ["Note"], summary: "인수인계 단건 조회",
-  ...auth, request: { params: idParam }, responses: { 200: { description: "인수인계 정보" }, 404: { description: "인수인계 없음" } } });
-registry.registerPath({ method: "patch", path: "/api/v1/note/{id}", tags: ["Note"], summary: "인수인계 수정",
-  ...auth, request: { params: idParam, ...body(updateNoteSchema) }, responses: { 200: { description: "수정 성공" }, 404: { description: "인수인계 없음" } } });
-registry.registerPath({ method: "delete", path: "/api/v1/note/{id}", tags: ["Note"], summary: "인수인계 삭제",
-  ...auth, request: { params: idParam }, responses: { 200: { description: "삭제 성공" } } });
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/note",
+  tags: ["Note"],
+  summary: "인수인계 생성",
+  ...auth,
+  request: body(createNoteSchema),
+  responses: { 201: { description: "인수인계 생성 성공" } },
+});
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/note/list",
+  tags: ["Note"],
+  summary: "인수인계 목록 조회",
+  ...auth,
+  request: { query: z.object({ groupId: z.string().uuid() }) },
+  responses: { 200: { description: "인수인계 목록" } },
+});
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/note/{id}",
+  tags: ["Note"],
+  summary: "인수인계 단건 조회",
+  ...auth,
+  request: { params: idParam },
+  responses: {
+    200: { description: "인수인계 정보" },
+    404: { description: "인수인계 없음" },
+  },
+});
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/note/{id}",
+  tags: ["Note"],
+  summary: "인수인계 수정",
+  ...auth,
+  request: { params: idParam, ...body(updateNoteSchema) },
+  responses: {
+    200: { description: "수정 성공" },
+    404: { description: "인수인계 없음" },
+  },
+});
+registry.registerPath({
+  method: "delete",
+  path: "/api/v1/note/{id}",
+  tags: ["Note"],
+  summary: "인수인계 삭제",
+  ...auth,
+  request: { params: idParam },
+  responses: { 200: { description: "삭제 성공" } },
+});
 
 router.post("/", validate(createNoteSchema), async (req, res, next) => {
   const { groupId, content, date } = req.body;
@@ -38,8 +79,7 @@ router.get("/list/by-date", async (req, res, next) => {
   const { date } = req.query as { date: string };
   const groupId = req.user!.groupId;
 
-  if (!date)
-    return res.status(400).json({ error: "date가 필요합니다." });
+  if (!date) return res.status(400).json({ error: "date가 필요합니다." });
   if (!groupId)
     return res.status(400).json({ error: "그룹에 속해 있지 않습니다." });
 
@@ -72,6 +112,9 @@ router.get("/list", async (req, res, next) => {
   try {
     const data = await prisma.note.findMany({
       where: { groupId: groupId as string, deletedAt: null },
+      include: {
+        user: { select: { userId: true, userName: true, userProfile: true } },
+      },
       orderBy: { createdAt: "desc" },
     });
     res.json({ page: 0, data, total: data.length });
@@ -85,6 +128,9 @@ router.get("/:id", async (req, res, next) => {
   try {
     const data = await prisma.note.findFirst({
       where: { noteId: id, deletedAt: null },
+      include: {
+        user: { select: { userId: true, userName: true, userProfile: true } },
+      },
     });
     if (!data)
       return res.status(404).json({ error: "인수인계를 찾을 수 없습니다." });
@@ -122,8 +168,11 @@ router.patch("/:id", validate(updateNoteSchema), async (req, res, next) => {
 router.delete("/:id", async (req, res, next) => {
   const { id } = req.params;
   try {
-    const existing = await prisma.note.findFirst({ where: { noteId: id, deletedAt: null } });
-    if (!existing) return res.status(404).json({ error: "인수인계를 찾을 수 없습니다." });
+    const existing = await prisma.note.findFirst({
+      where: { noteId: id, deletedAt: null },
+    });
+    if (!existing)
+      return res.status(404).json({ error: "인수인계를 찾을 수 없습니다." });
     if (existing.writer !== req.user!.userId)
       return res.status(403).json({ error: "권한이 없습니다." });
 
