@@ -5,6 +5,7 @@ import {
   createGroupSchema,
   updateGroupSchema,
   addMemberSchema,
+  transferOwnerSchema,
 } from "../../schemas/group.schema";
 import registry, { auth, body } from "../../docs/registry";
 import { z } from "zod";
@@ -81,6 +82,19 @@ registry.registerPath({
   ...auth,
   request: { params: idParam },
   responses: { 200: { description: "그룹 삭제 성공" } },
+});
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/group/{id}/owner",
+  tags: ["Group"],
+  summary: "그룹 소유자 변경",
+  ...auth,
+  request: { params: idParam, ...body(transferOwnerSchema) },
+  responses: {
+    200: { description: "소유자 변경 성공" },
+    403: { description: "권한 없음 또는 해당 그룹 멤버가 아님" },
+    404: { description: "그룹 또는 유저 없음" },
+  },
 });
 registry.registerPath({
   method: "delete",
@@ -181,7 +195,7 @@ router.post("/", validate(createGroupSchema), async (req, res, next) => {
     });
     await prisma.user.update({
       where: { userId: owner },
-      data: { groupId: group.groupId },
+      data: { groupId: group.groupId, admin: true },
     });
     const data = await prisma.group.findFirst({
       where: { groupId: group.groupId },
@@ -201,7 +215,13 @@ router.get("/:id", async (req, res, next) => {
       include: {
         members: {
           where: { deletedAt: null },
-          select: { userId: true, userName: true, userProfile: true },
+          select: {
+            userId: true,
+            userName: true,
+            userProfile: true,
+            groupId: true,
+            admin: true,
+          },
         },
       },
     });
@@ -237,6 +257,43 @@ router.patch("/:id", validate(updateGroupSchema), async (req, res, next) => {
     next(err);
   }
 });
+
+// PATCH /group/:id/owner — 그룹 소유자 변경 (owner만 가능)
+router.patch(
+  "/:id/owner",
+  validate(transferOwnerSchema),
+  async (req, res, next) => {
+    const { id } = req.params;
+    const { userId: newOwnerId } = req.body;
+    const myUserId = req.user!.userId;
+    try {
+      const group = await prisma.group.findFirst({
+        where: { groupId: id, deletedAt: null },
+      });
+      if (!group)
+        return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
+      if (group.owner !== myUserId)
+        return res.status(403).json({ error: "권한이 없습니다." });
+
+      const newOwner = await prisma.user.findFirst({
+        where: { userId: newOwnerId, groupId: id, deletedAt: null },
+      });
+      if (!newOwner)
+        return res
+          .status(404)
+          .json({ error: "해당 그룹의 멤버가 아닙니다." });
+
+      const data = await prisma.group.update({
+        where: { groupId: id },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data: { owner: newOwnerId } as any,
+      });
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 router.post(
   "/:id/member",
@@ -312,7 +369,9 @@ router.delete("/:id/leave", async (req, res, next) => {
     if (!group)
       return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
     if (group.owner === myUserId)
-      return res.status(403).json({ error: "owner는 그룹을 탈퇴할 수 없습니다." });
+      return res
+        .status(403)
+        .json({ error: "owner는 그룹을 탈퇴할 수 없습니다." });
 
     const user = await prisma.user.findFirst({
       where: { userId: myUserId, groupId: id, deletedAt: null },

@@ -12,3 +12,7 @@ export const updateGroupSchema = z.object({
 export const addMemberSchema = z.object({
   id: z.string(),
 });
+
+export const transferOwnerSchema = z.object({
+  userId: z.string().uuid("유효한 유저 ID를 입력해주세요."),
+});
