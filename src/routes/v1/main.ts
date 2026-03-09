@@ -79,15 +79,20 @@ router.get("/", async (req, res, next) => {
     start.setHours(0, 0, 0, 0);
     const end = new Date(now);
     end.setHours(23, 59, 59, 999);
-    const todayNotes = await prisma.note.findMany({
-      where: { groupId, date: { gte: start, lte: end }, deletedAt: null },
-      orderBy: { date: "asc" },
-      include: {
-        user: { select: { userId: true, userName: true, userProfile: true } },
-      },
-    });
+    const [todayNotes, hasUnreadNotification] = await Promise.all([
+      prisma.note.findMany({
+        where: { groupId, date: { gte: start, lte: end }, deletedAt: null },
+        orderBy: { date: "asc" },
+        include: {
+          user: { select: { userId: true, userName: true, userProfile: true } },
+        },
+      }),
+      prisma.notification.count({
+        where: { userId: req.user!.userId, read: false, deletedAt: null },
+      }).then((count) => count > 0),
+    ]);
 
-    res.json({ data: { group, todayWorkers, todayNotes } });
+    res.json({ data: { group, todayWorkers, todayNotes, hasUnreadNotification } });
   } catch (err) {
     next(err);
   }
