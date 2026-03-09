@@ -82,6 +82,19 @@ registry.registerPath({
   request: { params: idParam },
   responses: { 200: { description: "그룹 삭제 성공" } },
 });
+registry.registerPath({
+  method: "delete",
+  path: "/api/v1/group/{id}/leave",
+  tags: ["Group"],
+  summary: "그룹 탈퇴 (본인)",
+  ...auth,
+  request: { params: idParam },
+  responses: {
+    200: { description: "탈퇴 성공" },
+    403: { description: "owner는 탈퇴 불가" },
+    404: { description: "그룹 없음 또는 멤버 아님" },
+  },
+});
 // GET /group/:id/summary — 그룹 정보 + 공지사항 5개 + 인수인계 5개
 router.get("/:id/summary", async (req, res, next) => {
   const { id } = req.params;
@@ -280,9 +293,38 @@ router.delete("/:id/member/:userId", async (req, res, next) => {
 
     await prisma.user.update({
       where: { userId },
-      data: { groupId: null },
+      data: { groupId: null, admin: false },
     });
     res.json({ message: "멤버 제거 완료" });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /group/:id/leave — 본인 그룹 탈퇴
+router.delete("/:id/leave", async (req, res, next) => {
+  const { id } = req.params;
+  const myUserId = req.user!.userId;
+  try {
+    const group = await prisma.group.findFirst({
+      where: { groupId: id, deletedAt: null },
+    });
+    if (!group)
+      return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
+    if (group.owner === myUserId)
+      return res.status(403).json({ error: "owner는 그룹을 탈퇴할 수 없습니다." });
+
+    const user = await prisma.user.findFirst({
+      where: { userId: myUserId, groupId: id, deletedAt: null },
+    });
+    if (!user)
+      return res.status(404).json({ error: "해당 그룹의 멤버가 아닙니다." });
+
+    await prisma.user.update({
+      where: { userId: myUserId },
+      data: { groupId: null, admin: false },
+    });
+    res.json({ message: "그룹 탈퇴 완료" });
   } catch (err) {
     next(err);
   }
@@ -299,10 +341,16 @@ router.delete("/:id", async (req, res, next) => {
     if (group.owner !== req.user!.userId)
       return res.status(403).json({ error: "권한이 없습니다." });
 
-    await prisma.group.updateMany({
-      where: { groupId: id },
-      data: { deletedAt: new Date() },
-    });
+    await prisma.$transaction([
+      prisma.user.updateMany({
+        where: { groupId: id },
+        data: { admin: false },
+      }),
+      prisma.group.updateMany({
+        where: { groupId: id },
+        data: { deletedAt: new Date() },
+      }),
+    ]);
     res.json({ message: "그룹 삭제 완료" });
   } catch (err) {
     next(err);
