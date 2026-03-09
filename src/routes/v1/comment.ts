@@ -82,6 +82,9 @@ router.post("/", validate(createCommentSchema), async (req, res, next) => {
         targetCommentId: targetCommentId ?? null,
         content,
       },
+      include: {
+        user: { select: { userId: true, userName: true, userProfile: true } },
+      },
     });
     res.status(201).json({ data });
   } catch (err) {
@@ -95,6 +98,9 @@ router.get("/:groupId/:noticeId/list", async (req, res, next) => {
     const data = await prisma.comment.findMany({
       where: { groupId, noticeId: noticeId as string, deletedAt: null },
       orderBy: { createdAt: "asc" },
+      include: {
+        user: { select: { userId: true, userName: true, userProfile: true } },
+      },
     });
     res.json({ page: 0, data, total: data.length });
   } catch (err) {
@@ -107,6 +113,9 @@ router.get("/:groupId/:id", async (req, res, next) => {
   try {
     const data = await prisma.comment.findFirst({
       where: { commentId: id, groupId, deletedAt: null },
+      include: {
+        user: { select: { userId: true, userName: true, userProfile: true } },
+      },
     });
     if (!data)
       return res.status(404).json({ error: "댓글을 찾을 수 없습니다." });
@@ -134,6 +143,9 @@ router.patch(
       const data = await prisma.comment.update({
         where: { commentId: id },
         data: { content: content ?? undefined },
+        include: {
+          user: { select: { userId: true, userName: true, userProfile: true } },
+        },
       });
       res.json({ data });
     } catch (err) {
