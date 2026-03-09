@@ -21,10 +21,10 @@ registry.registerPath({ method: "delete", path: "/api/v1/notification/{id}", tag
   ...auth, request: { params: idParam }, responses: { 200: { description: "삭제 성공" } } });
 
 router.post("/", validate(createNotificationSchema), async (req, res, next) => {
-  const { userId, type, content, url } = req.body;
+  const { userId, type, content, data: payload } = req.body;
   try {
     const data = await prisma.notification.create({
-      data: { userId, type, content, url },
+      data: { userId, type, content, data: payload },
     });
     res.status(201).json({ data });
   } catch (err) {

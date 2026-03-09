@@ -11,6 +11,7 @@ import authMiddleware from "../../middleware/authHandler";
 import auth from "./auth";
 import oauth from "./oauth";
 import upload from "./upload";
+import invite from "./invite";
 
 const router = express.Router();
 
@@ -27,5 +28,6 @@ router.use("/note", authMiddleware, note);
 router.use("/comment", authMiddleware, comment);
 router.use("/notification", authMiddleware, notification);
 router.use("/upload", authMiddleware, upload);
+router.use("/invite", authMiddleware, invite);
 
 export default router;
