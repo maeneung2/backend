@@ -4,7 +4,11 @@ import { validate } from "../../middleware/validate";
 import { generateScheduleSchema } from "../../schemas/schedule.schema";
 import makeDaySchedule from "../../util/schedule/makeDaySchedule";
 import makeNightSchedule from "../../util/schedule/makeNightSchedule";
-import { buildScheduleState, getWeekdayCount, ShiftWorkerInput } from "../../util/schedule/helpers";
+import {
+  buildScheduleState,
+  getWeekdayCount,
+  ShiftWorkerInput,
+} from "../../util/schedule/helpers";
 
 const router = express.Router();
 
@@ -113,6 +117,7 @@ router.post("/preview", (req, res, next) => {
   try {
     const shiftWorkerInputs = (members as ShiftWorkerInput[]).map((m) => ({
       userId: m.userId,
+      userName: m.userName,
       isNight: m.isNight,
       targetWorkCount: m.targetWorkCount,
       isNew: false,
@@ -146,7 +151,14 @@ router.post("/preview", (req, res, next) => {
 
 // POST /schedule - 스케줄 생성
 router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
-  const { groupId, date, selectedDay, selectedNight, schedule: inputSchedule } = req.body;
+  const {
+    groupId,
+    date,
+    selectedDay,
+    selectedNight,
+    schedule: inputSchedule,
+    members,
+  } = req.body;
 
   try {
     const yearMonth = date.slice(0, 7);
@@ -154,14 +166,9 @@ router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
       where: { groupId, date: { startsWith: yearMonth }, deletedAt: null },
     });
     if (existing)
-      return res.status(409).json({ error: "해당 월에 이미 스케줄이 존재합니다." });
-
-    const group = await prisma.group.findFirst({
-      where: { groupId, deletedAt: null },
-      include: { members: { where: { deletedAt: null } } },
-    });
-    if (!group?.members.length)
-      return res.status(400).json({ error: "그룹에 멤버가 없습니다." });
+      return res
+        .status(409)
+        .json({ error: "해당 월에 이미 스케줄이 존재합니다." });
 
     const data = await prisma.schedule.create({
       data: {
@@ -171,18 +178,21 @@ router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
         selectedDay,
         selectedNight,
         workers: {
-          create: group.members.map((u) => ({
-            userId: u.userId,
-            isNight: false,
-            targetWorkCount: 0,
-            isNew: false,
+          create: (members as ShiftWorkerInput[]).map((w) => ({
+            userId: w.userId,
+            userName: w.userName,
+            isNight: w.isNight,
+            targetWorkCount: w.targetWorkCount,
+            isNew: w.isNew,
           })),
         },
       },
       include: {
         workers: {
           include: {
-            user: { select: { userId: true, userName: true, userProfile: true } },
+            user: {
+              select: { userId: true, userName: true, userProfile: true },
+            },
           },
         },
       },

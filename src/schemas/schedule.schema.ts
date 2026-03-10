@@ -6,6 +6,13 @@ export const generateScheduleSchema = z.object({
   selectedDay: z.array(z.number().int().min(0).max(30)),
   selectedNight: z.array(z.number().int().min(0).max(30)),
   schedule: z.array(z.array(z.number().int().min(0).max(6))),
+  members: z.array(z.object({
+    userId: z.string().uuid(),
+    userName: z.string(),
+    isNight: z.boolean().default(false),
+    targetWorkCount: z.number().int().min(0).default(0),
+    isNew: z.boolean().default(false),
+  })),
 });
 
 export const updateCellSchema = z.object({

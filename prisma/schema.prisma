@@ -98,6 +98,7 @@ model ShiftWorker {
   id              String   @id @default(uuid())
   scheduleId      String   @map("schedule_id")
   userId          String   @map("user_id")
+  userName        String   @default("") @map("user_name")
   isNight         Boolean  @map("is_night")
   isNew           Boolean  @default(false) @map("is_new")
   targetWorkCount Int      @map("target_work_count")
