@@ -34,10 +34,17 @@ router.get("/", async (req, res, next) => {
   const groupId = req.user!.groupId;
 
   if (!groupId) {
-    const hasUnreadNotification = await prisma.notification
-      .count({ where: { userId: req.user!.userId, read: false, deletedAt: null } })
-      .then((count) => count > 0);
-    return res.json({ data: { group: null, todayWorkers: null, todayNotes: null, hasUnreadNotification } });
+    const count = await prisma.notification.count({
+      where: { userId: req.user!.userId, read: false, deletedAt: null },
+    });
+    return res.json({
+      data: {
+        group: null,
+        todayWorkers: null,
+        todayNotes: null,
+        hasUnreadNotification: count > 0,
+      },
+    });
   }
 
   try {
@@ -91,12 +98,16 @@ router.get("/", async (req, res, next) => {
           user: { select: { userId: true, userName: true, userProfile: true } },
         },
       }),
-      prisma.notification.count({
-        where: { userId: req.user!.userId, read: false, deletedAt: null },
-      }).then((count) => count > 0),
+      prisma.notification
+        .count({
+          where: { userId: req.user!.userId, read: false, deletedAt: null },
+        })
+        .then((count) => count > 0),
     ]);
 
-    res.json({ data: { group, todayWorkers, todayNotes, hasUnreadNotification } });
+    res.json({
+      data: { group, todayWorkers, todayNotes, hasUnreadNotification },
+    });
   } catch (err) {
     next(err);
   }
@@ -108,8 +119,7 @@ router.get("/schedule", async (req, res, next) => {
   const groupId = req.user!.groupId;
   const myUserId = req.user!.userId;
 
-  if (!groupId)
-    return res.json({ data: { schedule: null, noteDays: [] } });
+  if (!groupId) return res.json({ data: { schedule: null, noteDays: [] } });
 
   try {
     const now = date ? new Date(date) : new Date();

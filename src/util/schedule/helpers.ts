@@ -15,7 +15,7 @@ export function getWeekdayCount(date: string): number {
   return count;
 }
 
-type ShiftWorkerInput = {
+export type ShiftWorkerInput = {
   userId: string;
   isNight: boolean;
   targetWorkCount: number;
