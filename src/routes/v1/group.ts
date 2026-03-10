@@ -199,9 +199,14 @@ router.post("/", validate(createGroupSchema), async (req, res, next) => {
     });
     const data = await prisma.group.findFirst({
       where: { groupId: group.groupId },
-      include: { members: { select: { userId: true, userName: true } } },
+      include: {
+        members: {
+          select: { userId: true, userName: true, userProfile: true, groupId: true, admin: true },
+        },
+      },
     });
-    res.status(201).json({ data });
+    const user = data?.members.find((m) => m.userId === owner) ?? null;
+    res.status(201).json({ data: { ...data, user } });
   } catch (err) {
     next(err);
   }
@@ -379,11 +384,12 @@ router.delete("/:id/leave", async (req, res, next) => {
     if (!user)
       return res.status(404).json({ error: "해당 그룹의 멤버가 아닙니다." });
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { userId: myUserId },
       data: { groupId: null, admin: false },
+      select: { userId: true, userName: true, userProfile: true, groupId: true, admin: true },
     });
-    res.json({ message: "그룹 탈퇴 완료" });
+    res.json({ message: "그룹 탈퇴 완료", data: { user: updatedUser } });
   } catch (err) {
     next(err);
   }
@@ -403,7 +409,7 @@ router.delete("/:id", async (req, res, next) => {
     await prisma.$transaction([
       prisma.user.updateMany({
         where: { groupId: id },
-        data: { admin: false },
+        data: { groupId: null, admin: false },
       }),
       prisma.group.updateMany({
         where: { groupId: id },

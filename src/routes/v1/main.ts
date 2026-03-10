@@ -33,8 +33,12 @@ router.get("/", async (req, res, next) => {
   const { date } = req.query as { date?: string };
   const groupId = req.user!.groupId;
 
-  if (!groupId)
-    return res.status(404).json({ error: "소속된 그룹이 없습니다." });
+  if (!groupId) {
+    const hasUnreadNotification = await prisma.notification
+      .count({ where: { userId: req.user!.userId, read: false, deletedAt: null } })
+      .then((count) => count > 0);
+    return res.json({ data: { group: null, todayWorkers: null, todayNotes: null, hasUnreadNotification } });
+  }
 
   try {
     const now = date ? new Date(date) : new Date();
@@ -105,7 +109,7 @@ router.get("/schedule", async (req, res, next) => {
   const myUserId = req.user!.userId;
 
   if (!groupId)
-    return res.status(404).json({ error: "소속된 그룹이 없습니다." });
+    return res.json({ data: { schedule: null, noteDays: [] } });
 
   try {
     const now = date ? new Date(date) : new Date();
