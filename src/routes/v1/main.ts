@@ -77,9 +77,8 @@ router.get("/", async (req, res, next) => {
       night: [],
     };
     if (rawSchedule) {
-      const grid = rawSchedule.schedule as number[][];
-      rawSchedule.workers.forEach((worker, idx) => {
-        const cell = grid[idx]?.[todayIndex];
+      rawSchedule.workers.forEach((worker) => {
+        const cell = (worker.plan as number[])[todayIndex];
         if (cell === 1) todayWorkers.day.push(worker.user);
         else if (cell === 2) todayWorkers.night.push(worker.user);
       });
@@ -154,14 +153,13 @@ router.get("/schedule", async (req, res, next) => {
 
     if (!rawSchedule) return res.json({ data: { schedule: null, noteDays } });
 
-    const grid = rawSchedule.schedule as number[][];
-    const myIdx = rawSchedule.workers.findIndex((w) => w.userId === myUserId);
+    const myWorker = rawSchedule.workers.find((w) => w.userId === myUserId);
 
     res.json({
       data: {
         scheduleId: rawSchedule.scheduleId,
         date: rawSchedule.date,
-        schedule: myIdx !== -1 ? grid[myIdx] : null,
+        schedule: myWorker ? (myWorker.plan as number[]) : null,
         noteDays,
       },
     });

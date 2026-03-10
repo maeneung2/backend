@@ -7,7 +7,7 @@ import makeNightSchedule from "../../util/schedule/makeNightSchedule";
 import {
   buildScheduleState,
   getWeekdayCount,
-  ShiftWorkerInput,
+  WorkerInput,
 } from "../../util/schedule/helpers";
 
 const router = express.Router();
@@ -38,7 +38,8 @@ router.get("/init", async (req, res, next) => {
     const month = d.getMonth();
     const numDays = new Date(year, month + 1, 0).getDate();
     const firstWeekday = new Date(year, month, 1).getDay();
-    const targetWorkCount = getWeekdayCount(date);
+    const weekdayCount = getWeekdayCount(date);
+    const restCount = numDays - weekdayCount;
 
     const selectedDay: number[] = [];
     const selectedNight: number[] = [];
@@ -57,17 +58,22 @@ router.get("/init", async (req, res, next) => {
 
     const workers = group.members.map((u) => ({
       userId: u.userId,
-      userName: u.userName,
-      userProfile: u.userProfile,
       isNight: false,
-      targetWorkCount,
+      isNew: false,
+      restCount,
+      plan: Array(numDays).fill(0),
+      user: {
+        userId: u.userId,
+        userName: u.userName,
+        userProfile: u.userProfile,
+      },
     }));
 
     res.json({
       data: {
         numDays,
         firstWeekday,
-        targetWorkCount,
+        restCount,
         selectedDay,
         selectedNight,
         workers,
@@ -105,34 +111,35 @@ router.get("/", async (req, res, next) => {
 
 // POST /schedule/preview - DB 저장 없이 스케줄 생성 결과만 반환
 router.post("/preview", (req, res, next) => {
-  const {
-    groupId,
-    date,
-    selectedDay,
-    selectedNight,
-    schedule: inputSchedule,
-    members,
-  } = req.body;
+  const { groupId, date, selectedDay, selectedNight, workers } = req.body;
 
   try {
-    const shiftWorkerInputs = (members as ShiftWorkerInput[]).map((m) => ({
-      userId: m.userId,
-      userName: m.userName,
-      isNight: m.isNight,
-      targetWorkCount: m.targetWorkCount,
-      isNew: false,
-    }));
+    const sorted = [
+      ...(workers as WorkerInput[]).filter((w) => !w.isNight),
+      ...(workers as WorkerInput[]).filter((w) => w.isNight),
+    ];
+
+    const d = new Date(date);
+    const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    const inputSchedule = sorted.map((w) =>
+      w.plan?.length ? w.plan : new Array(numDays).fill(0),
+    );
 
     const state = buildScheduleState({
       date,
       schedule: inputSchedule,
       selectedDay,
       selectedNight,
-      shiftWorkers: shiftWorkerInputs,
+      workers: sorted,
     });
 
     Object.assign(state, makeDaySchedule(state));
     Object.assign(state, makeNightSchedule(state));
+
+    const workersWithPlan = sorted.map((w, i) => ({
+      ...w,
+      plan: state.schedule[i],
+    }));
 
     res.json({
       data: {
@@ -140,8 +147,7 @@ router.post("/preview", (req, res, next) => {
         date,
         selectedDay,
         selectedNight,
-        schedule: state.schedule,
-        members,
+        workers: workersWithPlan,
       },
     });
   } catch (err) {
@@ -151,14 +157,7 @@ router.post("/preview", (req, res, next) => {
 
 // POST /schedule - 스케줄 생성
 router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
-  const {
-    groupId,
-    date,
-    selectedDay,
-    selectedNight,
-    schedule: inputSchedule,
-    members,
-  } = req.body;
+  const { groupId, date, workers } = req.body;
 
   try {
     const yearMonth = date.slice(0, 7);
@@ -174,16 +173,15 @@ router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
       data: {
         groupId,
         date,
-        schedule: inputSchedule,
-        selectedDay,
-        selectedNight,
+        selectedDay: [],
+        selectedNight: [],
         workers: {
-          create: (members as ShiftWorkerInput[]).map((w) => ({
+          create: (workers as WorkerInput[]).map((w) => ({
             userId: w.userId,
-            userName: w.userName,
             isNight: w.isNight,
-            targetWorkCount: w.targetWorkCount,
+            restCount: w.restCount,
             isNew: w.isNew,
+            plan: w.plan ?? [],
           })),
         },
       },
@@ -232,34 +230,27 @@ router.get("/:id", async (req, res, next) => {
 router.get("/:id/me", async (req, res, next) => {
   const { id } = req.params;
   try {
-    const schedule = await prisma.schedule.findFirst({
-      where: { scheduleId: id, deletedAt: null },
-      include: { workers: true },
+    const worker = await prisma.worker.findFirst({
+      where: { scheduleId: id, userId: req.user!.userId, deletedAt: null },
+      include: {
+        user: { select: { userId: true, userName: true, userProfile: true } },
+      },
     });
-    if (!schedule)
-      return res.status(404).json({ error: "스케줄을 찾을 수 없습니다." });
-
-    const myWorkerIdx = schedule.workers.findIndex(
-      (w) => w.userId === req.user!.userId,
-    );
-    if (myWorkerIdx === -1)
+    if (!worker)
       return res
         .status(404)
         .json({ error: "해당 스케줄에 포함되어 있지 않습니다." });
 
-    const mySchedule = (schedule.schedule as number[][])[myWorkerIdx];
-    res.json({
-      data: { schedule: mySchedule, worker: schedule.workers[myWorkerIdx] },
-    });
+    res.json({ data: worker });
   } catch (err) {
     next(err);
   }
 });
 
-// PATCH /schedule/:id - 스케줄 수정
+// PATCH /schedule/:id - 스케줄 수정 (worker별 plan만 수정 가능)
 router.patch("/:id", async (req, res, next) => {
   const { id } = req.params;
-  const { schedule, selectedDay, selectedNight } = req.body;
+  const { workers } = req.body;
 
   try {
     const existing = await prisma.schedule.findFirst({
@@ -268,16 +259,16 @@ router.patch("/:id", async (req, res, next) => {
     if (!existing)
       return res.status(404).json({ error: "스케줄을 찾을 수 없습니다." });
 
-    const data = await prisma.schedule.update({
-      where: { scheduleId: id },
-      data: {
-        ...(schedule !== undefined && { schedule }),
-        ...(selectedDay !== undefined && { selectedDay }),
-        ...(selectedNight !== undefined && { selectedNight }),
-      },
-    });
+    await prisma.$transaction(
+      (workers as { workerId: string; plan: number[] }[]).map((w) =>
+        prisma.worker.update({
+          where: { workerId: w.workerId },
+          data: { plan: w.plan },
+        }),
+      ),
+    );
 
-    res.json({ data });
+    res.json({ message: "스케줄 수정 완료" });
   } catch (err) {
     next(err);
   }

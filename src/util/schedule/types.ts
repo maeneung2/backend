@@ -1,7 +1,7 @@
 export interface Employee {
   name: string;
   workCount: number;
-  targetWorkCount: number;
+  restCount: number;
   isNight: boolean;
   isNew?: boolean;
   prevWorkCount?: number;

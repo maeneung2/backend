@@ -5,18 +5,11 @@ export const generateScheduleSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD 형식으로 입력해주세요."),
   selectedDay: z.array(z.number().int().min(0).max(30)),
   selectedNight: z.array(z.number().int().min(0).max(30)),
-  schedule: z.array(z.array(z.number().int().min(0).max(6))),
-  members: z.array(z.object({
+  workers: z.array(z.object({
     userId: z.string().uuid(),
-    userName: z.string(),
     isNight: z.boolean().default(false),
-    targetWorkCount: z.number().int().min(0).default(0),
+    restCount: z.number().int().min(0).default(0),
     isNew: z.boolean().default(false),
+    plan: z.array(z.number().int().min(0).max(6)).optional(),
   })),
-});
-
-export const updateCellSchema = z.object({
-  emp: z.number().int().min(0),
-  day: z.number().int().min(0),
-  workType: z.number().int().min(0).max(6),
 });

@@ -18,7 +18,7 @@ const addNew = (
     name,
     isNew: true,
     isNight: false,
-    targetWorkCount,
+    restCount: numDays - targetWorkCount,
     workCount: 0,
   };
 
@@ -32,7 +32,7 @@ const addNew = (
   validDate = validDate.sort(() => Math.random() - 0.5);
   validDate = validDate.sort((v) => (dayWorkCount[v] === 1 ? 1 : -1));
 
-  while (newWk.workCount < newWk.targetWorkCount) {
+  while (newWk.workCount < numDays - newWk.restCount) { 
     const select = validDate.pop() ?? -1;
     if (select === -1) break;
 

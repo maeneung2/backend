@@ -15,12 +15,12 @@ export function getWeekdayCount(date: string): number {
   return count;
 }
 
-export type ShiftWorkerInput = {
+export type WorkerInput = {
   userId: string;
-  userName: string;
   isNight: boolean;
-  targetWorkCount: number;
+  restCount: number;
   isNew: boolean;
+  plan?: number[];
   prevWorkCount?: number;
 };
 
@@ -29,9 +29,9 @@ export function buildScheduleState(params: {
   schedule: number[][];
   selectedDay: number[];
   selectedNight: number[];
-  shiftWorkers: ShiftWorkerInput[];
+  workers: WorkerInput[];
 }): ScheduleState {
-  const { date, schedule, selectedDay, selectedNight, shiftWorkers } = params;
+  const { date, schedule, selectedDay, selectedNight, workers } = params;
 
   const d = new Date(date);
   const firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
@@ -39,14 +39,14 @@ export function buildScheduleState(params: {
   const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
 
   const sorted = [
-    ...shiftWorkers.filter((w) => !w.isNight),
-    ...shiftWorkers.filter((w) => w.isNight),
+    ...workers.filter((w) => !w.isNight),
+    ...workers.filter((w) => w.isNight),
   ];
 
   const worker: Employee[] = sorted.map((sw, i) => ({
     name: sw.userId,
     isNight: sw.isNight,
-    targetWorkCount: sw.targetWorkCount,
+    restCount: sw.restCount,
     isNew: sw.isNew,
     prevWorkCount: sw.prevWorkCount,
     workCount: computeWorkCount(schedule[i] ?? [], sw.isNight),
@@ -74,25 +74,44 @@ function computeWorkCount(workerSchedule: number[], isNight: boolean): number {
   return workerSchedule.filter((c) => [1, 4].includes(c)).length;
 }
 
-export function computeDayWorkCount(schedule: number[][], numDays: number): number[] {
-  return Array.from({ length: numDays }, (_, day) =>
-    schedule.filter((w) => w[day] === 1).length,
+export function computeDayWorkCount(
+  schedule: number[][],
+  numDays: number,
+): number[] {
+  return Array.from(
+    { length: numDays },
+    (_, day) => schedule.filter((w) => w[day] === 1).length,
   );
 }
 
-export function computeNightWorkCount(schedule: number[][], numDays: number): number[] {
-  return Array.from({ length: numDays }, (_, day) =>
-    schedule.filter((w) => w[day] === 2).length,
+export function computeNightWorkCount(
+  schedule: number[][],
+  numDays: number,
+): number[] {
+  return Array.from(
+    { length: numDays },
+    (_, day) => schedule.filter((w) => w[day] === 2).length,
   );
 }
 
-export function computeAloneCount(schedule: number[][], numDays: number): number[] {
+export function computeAloneCount(
+  schedule: number[][],
+  numDays: number,
+): number[] {
   return schedule.map((_, wi) => {
     let count = 0;
     for (let day = 0; day < numDays; day++) {
       const cell = schedule[wi][day];
-      if (cell === 1 && schedule.filter((w, i) => i !== wi && w[day] === 1).length === 0) count++;
-      if (cell === 2 && schedule.filter((w, i) => i !== wi && w[day] === 2).length === 0) count++;
+      if (
+        cell === 1 &&
+        schedule.filter((w, i) => i !== wi && w[day] === 1).length === 0
+      )
+        count++;
+      if (
+        cell === 2 &&
+        schedule.filter((w, i) => i !== wi && w[day] === 2).length === 0
+      )
+        count++;
     }
     return count;
   });
