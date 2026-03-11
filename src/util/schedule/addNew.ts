@@ -17,7 +17,7 @@ const addNew = (
   const newWk: Employee = {
     name,
     isNew: true,
-    isNight: false,
+    fixedWorkType: 0,
     restCount: numDays - targetWorkCount,
     workCount: 0,
   };

@@ -1,7 +1,7 @@
 import { ScheduleState } from "./types";
-import applySchedule from "./applySchedule";
+import applySingleSchedule from "./applySingleSchedule";
 
-const makeDaySchedule = (state: ScheduleState): Partial<ScheduleState> => {
+const makeSingleSchedule = (state: ScheduleState): Partial<ScheduleState> => {
   const {
     schedule,
     worker,
@@ -14,7 +14,7 @@ const makeDaySchedule = (state: ScheduleState): Partial<ScheduleState> => {
   } = state;
 
   for (const date of selectedDay)
-    applySchedule(
+    applySingleSchedule(
       date,
       schedule,
       worker,
@@ -27,7 +27,7 @@ const makeDaySchedule = (state: ScheduleState): Partial<ScheduleState> => {
 
   for (let day = 0; day < numDays; day++)
     if (dayWorkCount[day] < 2)
-      applySchedule(
+      applySingleSchedule(
         day,
         schedule,
         worker,
@@ -55,7 +55,7 @@ const makeDaySchedule = (state: ScheduleState): Partial<ScheduleState> => {
 
     const select = ranDate.pop()!;
     if (dayWorkCount[select] < 2)
-      applySchedule(
+      applySingleSchedule(
         select,
         schedule,
         worker,
@@ -70,4 +70,4 @@ const makeDaySchedule = (state: ScheduleState): Partial<ScheduleState> => {
   return { schedule, dayGroup, worker, dayWorkCount, aloneCount };
 };
 
-export default makeDaySchedule;
+export default makeSingleSchedule;

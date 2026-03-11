@@ -1,10 +1,20 @@
 import { ScheduleState } from "./types";
-import applySchedule from "./applySchedule";
+import applyNightSchedule from "./applyNightSchedule";
 
 const matchSchedule = (state: ScheduleState): Partial<ScheduleState> => {
-  const { schedule, nightWorkCount, nightGroup, worker, aloneCount, numDays, group } = state;
+  const {
+    schedule,
+    nightWorkCount,
+    nightGroup,
+    worker,
+    aloneCount,
+    numDays,
+    group,
+  } = state;
 
-  let oneCount = nightWorkCount.map((c, idx) => (c === 1 ? idx : -1)).filter((v) => v > -1);
+  let oneCount = nightWorkCount
+    .map((c, idx) => (c === 1 ? idx : -1))
+    .filter((v) => v > -1);
 
   while (oneCount.length > 0) {
     const minIndex = nightGroup
@@ -19,7 +29,16 @@ const matchSchedule = (state: ScheduleState): Partial<ScheduleState> => {
 
     const select = oneCount.pop()!;
     if (nightWorkCount[select] < 2)
-      applySchedule(select, schedule, worker, aloneCount, nightWorkCount, nightGroup, numDays, group, true);
+      applyNightSchedule(
+        select,
+        schedule,
+        worker,
+        aloneCount,
+        nightWorkCount,
+        nightGroup,
+        numDays,
+        group,
+      );
   }
 
   return { schedule, nightGroup, aloneCount, worker, nightWorkCount };

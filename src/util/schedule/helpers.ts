@@ -17,7 +17,7 @@ export function getWeekdayCount(date: string): number {
 
 export type WorkerInput = {
   userId: string;
-  isNight: boolean;
+  fixedWorkType: number;
   restCount: number;
   isNew: boolean;
   plan?: number[];
@@ -39,17 +39,17 @@ export function buildScheduleState(params: {
   const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
 
   const sorted = [
-    ...workers.filter((w) => !w.isNight),
-    ...workers.filter((w) => w.isNight),
+    ...workers.filter((w) => w.fixedWorkType !== 2),
+    ...workers.filter((w) => w.fixedWorkType === 2),
   ];
 
   const worker: Employee[] = sorted.map((sw, i) => ({
     name: sw.userId,
-    isNight: sw.isNight,
+    fixedWorkType: sw.fixedWorkType ?? 0,
     restCount: sw.restCount,
     isNew: sw.isNew,
     prevWorkCount: sw.prevWorkCount,
-    workCount: computeWorkCount(schedule[i] ?? [], sw.isNight),
+    workCount: computeWorkCount(schedule[i] ?? [], sw.fixedWorkType),
   }));
 
   return {
@@ -69,8 +69,12 @@ export function buildScheduleState(params: {
   };
 }
 
-function computeWorkCount(workerSchedule: number[], isNight: boolean): number {
-  if (isNight) return workerSchedule.filter((c) => [2, 3].includes(c)).length;
+function computeWorkCount(
+  workerSchedule: number[],
+  fixedWorkType?: number | null,
+): number {
+  if (fixedWorkType === 2)
+    return workerSchedule.filter((c) => [2, 3].includes(c)).length;
   return workerSchedule.filter((c) => [1, 4].includes(c)).length;
 }
 

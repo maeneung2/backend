@@ -15,7 +15,7 @@ const applySchedule = (
   let candidates: number[] = Array.from({ length: numWorkers }, (_, i) => i);
 
   if (night) {
-    candidates = candidates.filter((w) => worker[w].isNight);
+    candidates = candidates.filter((w) => worker[w].fixedWorkType === 2);
     candidates = candidates.filter((w) => schedule[w][day] === 0);
 
     if (workCount[day] === 0)
@@ -96,7 +96,7 @@ const applySchedule = (
       }
     }
   } else {
-    candidates = candidates.filter((w) => !worker[w].isNight);
+    candidates = candidates.filter((w) => worker[w].fixedWorkType === 1 || worker[w].fixedWorkType === 0);
 
     if (workCount[day] === 0)
       candidates = candidates.filter((w) => !worker[w].isNew);

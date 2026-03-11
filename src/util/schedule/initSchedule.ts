@@ -7,8 +7,8 @@ const initSchedule = (dateStr: string, group: number, workers: Employee[]): Sche
   const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
 
   const wk = [
-    ...workers.filter((e) => !e.isNight),
-    ...workers.filter((e) => e.isNight),
+    ...workers.filter((e) => e.fixedWorkType !== 2),
+    ...workers.filter((e) => e.fixedWorkType === 2),
   ].map((w) => ({ ...w, workCount: 0 }));
 
   const selectedDay: number[] = [];

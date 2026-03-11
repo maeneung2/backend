@@ -2,7 +2,7 @@ export interface Employee {
   name: string;
   workCount: number;
   restCount: number;
-  isNight: boolean;
+  fixedWorkType: number;
   isNew?: boolean;
   prevWorkCount?: number;
 }

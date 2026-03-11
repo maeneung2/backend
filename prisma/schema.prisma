@@ -97,7 +97,7 @@ model Worker {
   workerId   String    @id @default(uuid()) @map("worker_id")
   scheduleId String    @map("schedule_id")
   userId     String    @map("user_id")
-  isNight    Boolean   @map("is_night")
+  fixedWorkType Int     @default(0) @map("fixed_work_type")
   isNew      Boolean   @default(false) @map("is_new")
   restCount  Int       @map("rest_count")
   plan       Json      @default("[]")

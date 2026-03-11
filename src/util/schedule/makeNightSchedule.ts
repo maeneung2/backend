@@ -1,5 +1,5 @@
 import { ScheduleState } from "./types";
-import applySchedule from "./applySchedule";
+import applyNightSchedule from "./applyNightSchedule";
 
 const makeNightSchedule = (state: ScheduleState): Partial<ScheduleState> => {
   const {
@@ -14,7 +14,7 @@ const makeNightSchedule = (state: ScheduleState): Partial<ScheduleState> => {
   } = state;
 
   for (const date of selectedNight)
-    applySchedule(
+    applyNightSchedule(
       date,
       schedule,
       worker,
@@ -23,12 +23,11 @@ const makeNightSchedule = (state: ScheduleState): Partial<ScheduleState> => {
       nightGroup,
       numDays,
       group,
-      true,
     );
 
   for (let day = 0; day < numDays; day++)
     if (nightWorkCount[day] < 2)
-      applySchedule(
+      applyNightSchedule(
         day,
         schedule,
         worker,
@@ -37,7 +36,6 @@ const makeNightSchedule = (state: ScheduleState): Partial<ScheduleState> => {
         nightGroup,
         numDays,
         group,
-        true,
       );
 
   let ranDate = Array.from({ length: numDays }, (_, i) => i).sort(
@@ -57,7 +55,7 @@ const makeNightSchedule = (state: ScheduleState): Partial<ScheduleState> => {
 
     const select = ranDate.pop()!;
     if (nightWorkCount[select] < 2)
-      applySchedule(
+      applyNightSchedule(
         select,
         schedule,
         worker,
@@ -66,7 +64,6 @@ const makeNightSchedule = (state: ScheduleState): Partial<ScheduleState> => {
         nightGroup,
         numDays,
         group,
-        true,
       );
   }
 

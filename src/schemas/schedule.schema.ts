@@ -7,7 +7,9 @@ export const generateScheduleSchema = z.object({
   selectedNight: z.array(z.number().int().min(0).max(30)),
   workers: z.array(z.object({
     userId: z.string().uuid(),
-    isNight: z.boolean().default(false),
+    fixedWorkType: z.number().int().refine((v) => [0, 1, 2, 6, 7, 8].includes(v), {
+      message: "fixedWorkType은 0, 1, 2, 6, 7, 8 중 하나여야 합니다.",
+    }).default(0),
     restCount: z.number().int().min(0).default(0),
     isNew: z.boolean().default(false),
     plan: z.array(z.number().int().min(0).max(6)).optional(),

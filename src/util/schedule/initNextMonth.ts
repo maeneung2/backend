@@ -11,8 +11,8 @@ const initNextMonth = (state: ScheduleState): ScheduleState => {
   const numDays = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
 
   const wk = [
-    ...worker.filter((e) => !e.isNight),
-    ...worker.filter((e) => e.isNight),
+    ...worker.filter((e) => e.fixedWorkType !== 2),
+    ...worker.filter((e) => e.fixedWorkType === 2),
   ].map((w) => ({ ...w, workCount: 0 }));
 
   const sch: number[][] = Array.from({ length: wk.length }, () => Array(numDays).fill(0));
