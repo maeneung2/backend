@@ -5,6 +5,7 @@ export const generateScheduleSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD 형식으로 입력해주세요."),
   selectedDay: z.array(z.number().int().min(0).max(30)),
   selectedNight: z.array(z.number().int().min(0).max(30)),
+  pattern: z.array(z.number().int()).optional(),
   workers: z.array(z.object({
     userId: z.string().uuid(),
     fixedWorkType: z.number().int().refine((v) => [0, 1, 2, 6, 7, 8].includes(v), {

@@ -84,6 +84,7 @@ model Schedule {
   date          String
   selectedDay   Json      @map("selected_day")
   selectedNight Json      @map("selected_night")
+  pattern       Json?
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime? @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")

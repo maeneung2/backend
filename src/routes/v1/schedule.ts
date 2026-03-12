@@ -121,16 +121,25 @@ router.post("/preview", (req, res, next) => {
 
     const d = new Date(date);
     const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    const weekdayCount = getWeekdayCount(date);
+    const restCount = numDays - weekdayCount;
+
     const inputSchedule = sorted.map((w) =>
       w.plan?.length ? w.plan : new Array(numDays).fill(0),
     );
+
+    sorted.forEach((w, i) => {
+      if (w.lastWorkType === 2) {
+        inputSchedule[i][0] = 3;
+      }
+    });
 
     const state = buildScheduleState({
       date,
       schedule: inputSchedule,
       selectedDay,
       selectedNight,
-      workers: sorted,
+      workers: sorted.map((w) => ({ ...w, restCount, prevWorkCount: w.prevWorkCount })),
     });
 
     Object.assign(state, makeSingleSchedule(state));
@@ -157,7 +166,7 @@ router.post("/preview", (req, res, next) => {
 
 // POST /schedule - 스케줄 생성
 router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
-  const { groupId, date, workers } = req.body;
+  const { groupId, date, workers, pattern } = req.body;
 
   try {
     const yearMonth = date.slice(0, 7);
@@ -175,6 +184,7 @@ router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
         date,
         selectedDay: [],
         selectedNight: [],
+        ...(pattern !== undefined && { pattern }),
         workers: {
           create: (workers as WorkerInput[]).map((w) => ({
             userId: w.userId,

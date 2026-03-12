@@ -22,6 +22,7 @@ export type WorkerInput = {
   isNew: boolean;
   plan?: number[];
   prevWorkCount?: number;
+  lastWorkType?: number;
 };
 
 export function buildScheduleState(params: {
