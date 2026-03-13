@@ -32,6 +32,11 @@ export function repairDaySchedule(
   worker: Employee[],
   numDays: number,
 ): void {
+  const dayWorkCount = Array.from(
+    { length: numDays },
+    (_, day) => schedule.filter((w) => w[day] === 1).length,
+  );
+
   const workerIndices = Array.from({ length: worker.length }, (_, i) => i)
     .filter((w) => worker[w].fixedWorkType !== 2)
     .sort((a, b) => {
@@ -44,7 +49,11 @@ export function repairDaySchedule(
     const maxWork = numDays - worker[w].restCount;
     if (worker[w].workCount >= maxWork) continue;
 
-    for (let day = 0; day < numDays; day++) {
+    const days = Array.from({ length: numDays }, (_, i) => i).sort(
+      (a, b) => dayWorkCount[a] - dayWorkCount[b],
+    );
+
+    for (const day of days) {
       if (worker[w].workCount >= maxWork) break;
       if (schedule[w][day] !== 0) continue;
       if (day > 0 && schedule[w][day - 1] === 3) continue;
@@ -52,6 +61,7 @@ export function repairDaySchedule(
 
       schedule[w][day] = 1;
       worker[w].workCount++;
+      dayWorkCount[day]++;
     }
   }
 }
@@ -61,6 +71,11 @@ export function repairNightSchedule(
   worker: Employee[],
   numDays: number,
 ): void {
+  const nightWorkCount = Array.from(
+    { length: numDays },
+    (_, day) => schedule.filter((w) => w[day] === 2).length,
+  );
+
   const workerIndices = Array.from({ length: worker.length }, (_, i) => i)
     .filter((w) => worker[w].fixedWorkType !== 1)
     .sort((a, b) => {
@@ -73,7 +88,11 @@ export function repairNightSchedule(
     const maxWork = numDays - worker[w].restCount + 1;
     if (worker[w].workCount >= maxWork) continue;
 
-    for (let day = 0; day < numDays; day++) {
+    const days = Array.from({ length: numDays }, (_, i) => i).sort(
+      (a, b) => nightWorkCount[a] - nightWorkCount[b],
+    );
+
+    for (const day of days) {
       if (worker[w].workCount >= maxWork) break;
       if (schedule[w][day] !== 0) continue;
       if (day + 1 < numDays && schedule[w][day + 1] !== 0) continue;
@@ -82,6 +101,7 @@ export function repairNightSchedule(
 
       schedule[w][day] = 2;
       worker[w].workCount++;
+      nightWorkCount[day]++;
       if (day + 1 < numDays) {
         schedule[w][day + 1] = 3;
         worker[w].workCount++;

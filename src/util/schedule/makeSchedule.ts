@@ -25,34 +25,30 @@ const makeSchedule = (state: ScheduleState): Partial<ScheduleState> => {
   for (const date of selectedNight)
     applyNightSchedule(date, schedule, worker, aloneCount, nightWorkCount, nightGroup, numDays, group);
 
-  // Phase 2: 주간 1명 → 야간 1명 → 주간 2명 → 야간 2명 → ...
-  let dayRound = 0;
-  let nightRound = 0;
-  let anyDayAssigned = true;
-  let anyNightAssigned = true;
+  // Phase 2: 주간/야간 교대로, 가장 인원이 적은 날 하나씩 배정 (균등 분배)
+  let anyAssigned = true;
+  while (anyAssigned) {
+    anyAssigned = false;
 
-  while (anyDayAssigned || anyNightAssigned) {
-    anyDayAssigned = false;
     const dayDays = Array.from({ length: numDays }, (_, i) => i).sort(
-      () => Math.random() - 0.5,
+      (a, b) => dayWorkCount[a] - dayWorkCount[b] || Math.random() - 0.5,
     );
     for (const day of dayDays) {
-      if (dayWorkCount[day] !== dayRound) continue;
-      if (applySingleSchedule(day, schedule, worker, aloneCount, dayWorkCount, dayGroup, numDays, group))
-        anyDayAssigned = true;
+      if (applySingleSchedule(day, schedule, worker, aloneCount, dayWorkCount, dayGroup, numDays, group)) {
+        anyAssigned = true;
+        break;
+      }
     }
-    dayRound++;
 
-    anyNightAssigned = false;
     const nightDays = Array.from({ length: numDays }, (_, i) => i).sort(
-      () => Math.random() - 0.5,
+      (a, b) => nightWorkCount[a] - nightWorkCount[b] || Math.random() - 0.5,
     );
     for (const day of nightDays) {
-      if (nightWorkCount[day] !== nightRound) continue;
-      if (applyNightSchedule(day, schedule, worker, aloneCount, nightWorkCount, nightGroup, numDays, group))
-        anyNightAssigned = true;
+      if (applyNightSchedule(day, schedule, worker, aloneCount, nightWorkCount, nightGroup, numDays, group)) {
+        anyAssigned = true;
+        break;
+      }
     }
-    nightRound++;
   }
 
   // Phase 3: 보정
