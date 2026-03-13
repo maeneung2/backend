@@ -1,5 +1,6 @@
 import { ScheduleState } from "./types";
 import applySingleSchedule from "./applySingleSchedule";
+import { repairDaySchedule } from "./repairSchedule";
 
 const makeSingleSchedule = (state: ScheduleState): Partial<ScheduleState> => {
   const {
@@ -25,9 +26,17 @@ const makeSingleSchedule = (state: ScheduleState): Partial<ScheduleState> => {
       group,
     );
 
-  for (let day = 0; day < numDays; day++)
-    if (dayWorkCount[day] < 2)
-      applySingleSchedule(
+  // 라운드 방식: 1인 배치 완료 → 2인 배치 → 3인 배치 ...
+  let round = 0;
+  let anyAssigned = true;
+  while (anyAssigned) {
+    anyAssigned = false;
+    const days = Array.from({ length: numDays }, (_, i) => i).sort(
+      () => Math.random() - 0.5,
+    );
+    for (const day of days) {
+      if (dayWorkCount[day] !== round) continue;
+      const assigned = applySingleSchedule(
         day,
         schedule,
         worker,
@@ -37,35 +46,12 @@ const makeSingleSchedule = (state: ScheduleState): Partial<ScheduleState> => {
         numDays,
         group,
       );
-
-  let ranDate = Array.from({ length: numDays }, (_, i) => i).sort(
-    () => Math.random() - 0.5,
-  );
-
-  while (ranDate.length > 0) {
-    // const minIndex = dayGroup
-    //   .map((value, index) => ({ index, value }))
-    //   .reduce((min, curr) => (curr.value < min.value ? curr : min)).index;
-
-    // ranDate.sort((a, b) => {
-    //   const aKey = a % 4 === minIndex ? 0 : 1;
-    //   const bKey = b % 4 === minIndex ? 0 : 1;
-    //   return aKey - bKey;
-    // });
-
-    const select = ranDate.pop()!;
-    if (dayWorkCount[select] < 2)
-      applySingleSchedule(
-        select,
-        schedule,
-        worker,
-        aloneCount,
-        dayWorkCount,
-        dayGroup,
-        numDays,
-        group,
-      );
+      if (assigned) anyAssigned = true;
+    }
+    round++;
   }
+
+  repairDaySchedule(schedule, worker, numDays);
 
   return { schedule, dayGroup, worker, dayWorkCount, aloneCount };
 };

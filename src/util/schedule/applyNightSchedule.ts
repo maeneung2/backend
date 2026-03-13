@@ -9,7 +9,7 @@ const applyNightSchedule = (
   groupCount: number[],
   numDays: number,
   group: number,
-): void => {
+): boolean => {
   const numWorkers = worker.length;
   let candidates: number[] = Array.from({ length: numWorkers }, (_, i) => i);
 
@@ -56,6 +56,14 @@ const applyNightSchedule = (
     if (temp.length > 0) candidates = temp;
   }
 
+  // 야비야비(2,3,2) 최소화: 앞뒤 2일 내 야간이 없는 후보 우선
+  const withoutYabiYabi = candidates.filter((w) => {
+    const prevNight = day >= 2 && schedule[w][day - 2] === 2;
+    const nextNight = day + 2 < numDays && schedule[w][day + 2] === 2;
+    return !prevNight && !nextNight;
+  });
+  if (withoutYabiYabi.length > 0) candidates = withoutYabiYabi;
+
   // if (schedule.filter((w) => w[day] === 2).length > 0) {
   //   candidates = candidates.sort((a, b) =>
   //     aloneCount[a] <= aloneCount[b] ? -1 : 1,
@@ -72,7 +80,11 @@ const applyNightSchedule = (
 
   candidates = temp.length > 0 ? temp : candidates;
 
-  candidates = candidates.sort(() => Math.random() - 0.5);
+  candidates = candidates.sort((a, b) => {
+    const remainA = (numDays - worker[a].restCount + 1) - worker[a].workCount;
+    const remainB = (numDays - worker[b].restCount + 1) - worker[b].workCount;
+    return remainB - remainA || Math.random() - 0.5;
+  });
 
   if (candidates.length > 0) {
     const selected = candidates[0];
@@ -83,19 +95,9 @@ const applyNightSchedule = (
     }
     workCount[day]++;
     worker[selected].workCount++;
-    //
-    // if (workCount[day] === 1) {
-    //   groupCount[(32 + group - day - 1) % 4]++;
-    //   aloneCount[selected]++;
-    // }
-    // if (workCount[day] === 2) {
-    //   groupCount[(32 + group - day - 1) % 4]--;
-    //   const target = worker.findIndex(
-    //     (_, idx) => idx !== selected && schedule[idx][day] === 2,
-    //   );
-    //   if (target > -1) aloneCount[target]--;
-    // }
+    return true;
   }
+  return false;
 };
 
 export default applyNightSchedule;

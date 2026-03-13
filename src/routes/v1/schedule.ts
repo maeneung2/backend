@@ -2,8 +2,7 @@ import express from "express";
 import prisma from "../../prisma";
 import { validate } from "../../middleware/validate";
 import { generateScheduleSchema } from "../../schemas/schedule.schema";
-import makeSingleSchedule from "../../util/schedule/makeSingleSchedule";
-import makeNightSchedule from "../../util/schedule/makeNightSchedule";
+import makeSchedule from "../../util/schedule/makeSchedule";
 import {
   buildScheduleState,
   getWeekdayCount,
@@ -114,21 +113,18 @@ router.post("/preview", (req, res, next) => {
   const { groupId, date, selectedDay, selectedNight, workers } = req.body;
 
   try {
-    const sorted = [
-      ...(workers as WorkerInput[]).filter((w) => w.fixedWorkType !== 2),
-      ...(workers as WorkerInput[]).filter((w) => w.fixedWorkType === 2),
-    ];
+    const workerList = workers as WorkerInput[];
 
     const d = new Date(date);
     const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
     const weekdayCount = getWeekdayCount(date);
     const restCount = numDays - weekdayCount;
 
-    const inputSchedule = sorted.map((w) =>
+    const inputSchedule = workerList.map((w) =>
       w.plan?.length ? w.plan : new Array(numDays).fill(0),
     );
 
-    sorted.forEach((w, i) => {
+    workerList.forEach((w, i) => {
       if (w.lastWorkType === 2) {
         inputSchedule[i][0] = 3;
       }
@@ -139,13 +135,12 @@ router.post("/preview", (req, res, next) => {
       schedule: inputSchedule,
       selectedDay,
       selectedNight,
-      workers: sorted.map((w) => ({ ...w, restCount, prevWorkCount: w.prevWorkCount })),
+      workers: workerList.map((w) => ({ ...w, restCount, prevWorkCount: w.prevWorkCount })),
     });
 
-    Object.assign(state, makeSingleSchedule(state));
-    Object.assign(state, makeNightSchedule(state));
+    Object.assign(state, makeSchedule(state));
 
-    const workersWithPlan = sorted.map((w, i) => ({
+    const workersWithPlan = workerList.map((w, i) => ({
       ...w,
       plan: state.schedule[i],
     }));

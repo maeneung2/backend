@@ -39,12 +39,7 @@ export function buildScheduleState(params: {
   const weekday = firstDay.getDay();
   const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
 
-  const sorted = [
-    ...workers.filter((w) => w.fixedWorkType !== 2),
-    ...workers.filter((w) => w.fixedWorkType === 2),
-  ];
-
-  const worker: Employee[] = sorted.map((sw, i) => ({
+  const worker: Employee[] = workers.map((sw, i) => ({
     name: sw.userId,
     fixedWorkType: sw.fixedWorkType ?? 0,
     restCount: sw.restCount,
