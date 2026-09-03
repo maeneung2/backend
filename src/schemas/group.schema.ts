@@ -7,6 +7,7 @@ export const createGroupSchema = z.object({
 export const updateGroupSchema = z.object({
   groupName: z.string().min(1).optional(),
   groupProfile: z.string().optional(),
+  restBlocksNextDayDay: z.boolean().optional(),
 });
 
 export const addMemberSchema = z.object({
