@@ -8,6 +8,7 @@ import {
   getWeekdayCount,
   WorkerInput,
 } from "../../util/schedule/helpers";
+import { findRestToDayViolations } from "../../util/schedule/restBlocksNextDayDay";
 
 const router = express.Router();
 
@@ -109,11 +110,13 @@ router.get("/", async (req, res, next) => {
 });
 
 // POST /schedule/preview - DB 저장 없이 스케줄 생성 결과만 반환
-router.post("/preview", (req, res, next) => {
+router.post("/preview", async (req, res, next) => {
   const { groupId, date, selectedDay, selectedNight, workers } = req.body;
 
   try {
     const workerList = workers as WorkerInput[];
+    const group = await prisma.group.findFirst({ where: { groupId, deletedAt: null }, select: { restBlocksNextDayDay: true } });
+    if (!group) return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
 
     const d = new Date(date);
     const numDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
@@ -140,6 +143,8 @@ router.post("/preview", (req, res, next) => {
 
     Object.assign(state, makeSchedule(state));
 
+    const violations = findRestToDayViolations(state.schedule, group.restBlocksNextDayDay);
+
     const workersWithPlan = workerList.map((w, i) => ({
       ...w,
       plan: state.schedule[i],
@@ -152,6 +157,8 @@ router.post("/preview", (req, res, next) => {
         selectedDay,
         selectedNight,
         workers: workersWithPlan,
+        restBlocksNextDayDay: group.restBlocksNextDayDay,
+        violations,
       },
     });
   } catch (err) {
@@ -173,12 +180,19 @@ router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
         .status(409)
         .json({ error: "해당 월에 이미 스케줄이 존재합니다." });
 
+    const group = await prisma.group.findFirst({ where: { groupId, deletedAt: null }, select: { restBlocksNextDayDay: true } });
+    if (!group) return res.status(404).json({ error: "그룹을 찾을 수 없습니다." });
+
+    const violations = findRestToDayViolations((workers as WorkerInput[]).map((w) => w.plan ?? []), group.restBlocksNextDayDay);
+    if (violations.length > 0) return res.status(422).json({ error: "비번 다음 날 주간 배정 금지 규칙을 위반했습니다.", violations });
+
     const data = await prisma.schedule.create({
       data: {
         groupId,
         date,
         selectedDay: [],
         selectedNight: [],
+        restBlocksNextDayDay: group.restBlocksNextDayDay,
         ...(pattern !== undefined && { pattern }),
         workers: {
           create: (workers as WorkerInput[]).map((w) => ({
@@ -205,6 +219,17 @@ router.post("/", validate(generateScheduleSchema), async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// POST /schedule/:id/revalidate - 초안/수정본 정책 재검증
+router.post("/:id/revalidate", async (req, res, next) => {
+  try {
+    const schedule = await prisma.schedule.findFirst({ where: { scheduleId: req.params.id, deletedAt: null }, include: { workers: true } });
+    if (!schedule) return res.status(404).json({ error: "스케줄을 찾을 수 없습니다." });
+    const plans = (req.body.workers as { plan: number[] }[] | undefined)?.map((w) => w.plan) ?? schedule.workers.map((w) => w.plan as number[]);
+    const violations = findRestToDayViolations(plans, schedule.restBlocksNextDayDay);
+    res.json({ data: { valid: violations.length === 0, restBlocksNextDayDay: schedule.restBlocksNextDayDay, violations } });
+  } catch (err) { next(err); }
 });
 
 // GET /schedule/:id - 전체 스케줄 조회 (관리자용)

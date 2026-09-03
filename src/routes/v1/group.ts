@@ -240,7 +240,7 @@ router.get("/:id", async (req, res, next) => {
 
 router.patch("/:id", validate(updateGroupSchema), async (req, res, next) => {
   const { id } = req.params;
-  const { groupName, groupProfile } = req.body;
+  const { groupName, groupProfile, restBlocksNextDayDay } = req.body;
   try {
     const existing = await prisma.group.findFirst({
       where: { groupId: id, deletedAt: null },
@@ -255,6 +255,7 @@ router.patch("/:id", validate(updateGroupSchema), async (req, res, next) => {
       data: {
         groupName: groupName ?? undefined,
         groupProfile: groupProfile ?? undefined,
+        restBlocksNextDayDay: restBlocksNextDayDay ?? undefined,
       },
     });
     res.json({ data });

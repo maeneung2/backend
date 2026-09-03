@@ -51,6 +51,7 @@ model Group {
   groupName    String            @map("group_name")
   groupProfile String?           @map("group_profile")
   owner        String
+  restBlocksNextDayDay Boolean @default(true) @map("rest_blocks_next_day_day")
   createdAt    DateTime          @default(now()) @map("created_at")
   updatedAt    DateTime?         @updatedAt @map("updated_at")
   deletedAt    DateTime?         @map("deleted_at")
@@ -85,6 +86,7 @@ model Schedule {
   selectedDay   Json      @map("selected_day")
   selectedNight Json      @map("selected_night")
   pattern       Json?
+  restBlocksNextDayDay Boolean @default(true) @map("rest_blocks_next_day_day")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime? @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
