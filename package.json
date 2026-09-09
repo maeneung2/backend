@@ -6,28 +6,48 @@
   "scripts": {
     "start": "node src/index.ts",
     "dev": "nodemon src/index.ts",
-    "build": "tsup src/index.ts --clean --format cjs"
+    "build": "prisma generate && tsup src/index.ts --clean --format cjs",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.22.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "prisma",
+      "@prisma/client"
+    ]
+  },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^8.4.3",
+    "@aws-sdk/client-s3": "^3.1004.0",
+    "@aws-sdk/s3-request-presigner": "^3.1004.0",
+    "@prisma/client": "^5.22.0",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
-    "dayjs": "^1.11.19",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "pg": "^8.16.3",
+    "express-rate-limit": "^8.2.1",
+    "jsonwebtoken": "^9.0.3",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "tsup": "^8.5.1",
+    "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
     "eslint": "^9.39.1",
     "nodemon": "^3.1.11",
-    "prettier": "3.7.4"
+    "prettier": "3.7.4",
+    "prisma": "^5.22.0",
+    "tsup": "^8.5.1"
   }
 }
